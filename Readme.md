@@ -7,7 +7,8 @@ Self-supervised pre-training for segmentation
 2. Find large image dataset(s) to generate a pre-trained model, justify choices. 
 3. Perform the self-supervised training using the large dataset. 
 4. Design and implement a fine-tuning method using a subset of the Pet data set ('The Oxford-IIIT Pet Dataset' https://www.robots.ox.ac.uk/~vgg/data/pets/)
-[!'The Oxford-IIIT Pet Dataset']
+   
+> [!'The Oxford-IIIT Pet Dataset']
 > This is a "37 category pet dataset with roughly 200 images for each class. The images have a large variations in scale, pose and lighting. All images have an associated ground truth annotation of breed, head ROI, and pixel level trimap segmentation."
 > 'Cats and Dogs' Parki et al., IEEE Conference on Computer Vision and Pattern Recognition, 2012
 > "We investigate the fine grained object categorization problem of determining the breed of animal from an image. To this end we introduce a new annotated dataset
@@ -22,8 +23,8 @@ Self-supervised pre-training for segmentation
 > https://www.robots.ox.ac.uk/~vgg/publications/2012/parkhi12a/parkhi12a.pdf
 
 5. Design and conduct experiments for network comparisons, at least:
-   5(a). Compare the framework with a baseline model trained on the same fine-tuning data, using fully supervised methods.
-   5(b).Compare the benefit of the pre-trained segmentation model, using different fine-tuning data set sizes.
+   <br>5(a). Compare the framework with a baseline model trained on the same fine-tuning data, using fully supervised methods.
+   <br>5(b).Compare the benefit of the pre-trained segmentation model, using different fine-tuning data set sizes.
 6. Describe implemented methods and conduct experiments.
 7. Summarise obtained results and draw conclusions.
 
@@ -33,6 +34,6 @@ Come up with new study question to answer, an open-ended question (OEQ). Novelty
    It needs to be built on the MRP and relevant to self-supervised segmentation algorithms.
 3. Describe the question, experiment and results clearly and cohesively with the MRP in the report.
 Some example study questions are given as follows.
-• Does increase unlabelled pretraining data always help?
-• How similar the pretraining and finetuning/test data need to be, for a better segmentation model?
-• What has been learned from the pretraining data?
+<br>• Does increase unlabelled pretraining data always help?
+<br>• How similar the pretraining and finetuning/test data need to be, for a better segmentation model?
+<br>• What has been learned from the pretraining data?
