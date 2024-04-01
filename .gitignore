@@ -1,3 +1,7 @@
 *.idea
 *dataset
 Animals-10
+*.pth
+*pt
+resized_RGB_image
+Oxford-IIIT-Pet_split
