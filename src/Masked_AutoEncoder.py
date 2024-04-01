@@ -20,6 +20,15 @@ import os
 import numpy as np
 import matplotlib.pyplot as plt
 
+""" Stephen 24.03.24 email
+Its not quite as described in the paper, because I wanted to use the PyTorch VisionTransformer class, 
+rather than either use a simpler network (I wondered whether it would have been better to start off easier) 
+or have to in effect build my own transformer, which meant that I fed the whole image in, 
+rather than the unpatched parts…its obviously not as efficient, but wonder if aside from that it makes much difference….
+but it might be better ditch this an use nn.Transformer instead…..this would mean doing the proper patching - 
+ie rather than just blanking out, taking the images apart and putting in a long vector. 
+Maybe that’s something you can have a look at tomorrow? There are a few resources online for how to do this.
+"""
 
 network_parameters = { # just a placeholder
     "image_size": 256,
