@@ -17,7 +17,7 @@ class IoULoss(nn.Module):
         there is a single matrix of labels, with each entry in matrix corresponding to class label of a pixel.
         :return: Intersection over Union loss.
         """
-        # return 1.0 - IoUMetric(pred, gt, self.softmax)
+        # return 1.0 - IoUMetric(pred, grount_truth, self.softmax)
         return -(iou_metric(preds, ground_truth, self.softmax).log())  # neg log loss for more stable training
 
 
