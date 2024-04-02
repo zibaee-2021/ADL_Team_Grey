@@ -7,8 +7,6 @@ class IoULoss(nn.Module):
         super().__init__()
         self.softmax = softmax
 
-    # preds => Predictions (logits, B, 3, H, W)
-    # ground_truth => Ground Truth labels (B, 1, H, W)
     def forward(self, preds, ground_truth):
         """
         Compute IoU loss.
