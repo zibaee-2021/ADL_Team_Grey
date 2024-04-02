@@ -5,8 +5,10 @@ Animals-10
 *.pt
 resized_RGB_image
 Oxford-IIIT-Pet_split
+Oxford-IIIT-Pet
 *.png
 *.jpg
 *.jpeg
 *.csv
 *hdf5
+
