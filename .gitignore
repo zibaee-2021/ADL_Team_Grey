@@ -2,6 +2,11 @@
 *dataset
 Animals-10
 *.pth
-*pt
+*.pt
 resized_RGB_image
 Oxford-IIIT-Pet_split
+*.png
+*.jpg
+*.jpeg
+*.csv
+*hdf5
