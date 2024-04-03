@@ -24,7 +24,7 @@ class MVAETests(TestCase):
         # segmentation model
         "segmenter_hidden_dim_1": 1024,  # segmentation model - more work needed on architecture - convolution?
         "segmenter_hidden_dim_2": 1024,
-    }
+    }  # Not currently used.
 
     # def test_mask_tester(self):
     #
@@ -32,13 +32,20 @@ class MVAETests(TestCase):
     #     mvae.mask_tester(patch_masker, image_file)
 
     def test_custom_iou_loss(self):
-        torch.manual_seed(42)
-        preds = torch.rand((2, 3, 2, 2), requires_grad=True) # (batch_size, channel, height, width)
-        grount_truth = torch.randint(0, 3, (2, 1, 2, 2), dtype=torch.long)
-        expected = torch.Tensor(1.4408)
-        actual = ioumet.IoULoss(softmax=True)(preds, grount_truth)
-        actual = torch.Tensor(actual.item())
+        # preds has shape (2, 3, 2, 2) for (batch_size, channel, height, width)
+        preds = torch.tensor([[[[0.8823, 0.9150], [0.3829, 0.9593]],
+                               [[0.3904, 0.6009], [0.2566, 0.7936]],
+                               [[0.9408, 0.1332], [0.9346, 0.5936]]],
+                              [[[0.8694, 0.5677], [0.7411, 0.4294]],
+                               [[0.8854, 0.5739], [0.2666, 0.6274]],
+                               [[0.2696, 0.4414], [0.2969, 0.8317]]]], requires_grad=True)
+        # ground_truth has shape (2, 1, 2, 2) for (batch_size, channel, height, width)
+        ground_truth = torch.tensor([[[[0, 1], [2, 0]]],
+                                     [[[1, 2], [1, 1]]]], dtype=torch.long)
+        actual = ioumet.IoULoss(preds_are_logits=True)(preds, ground_truth)
+        actual = actual.item()
         print(actual)
+        expected = 1.5112615823745728
         self.assertEqual(expected, actual)
 
     def test_custom_iou_metric(self):
