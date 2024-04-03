@@ -1,0 +1,41 @@
+If you haven't already installed git, apparently for MacOs, you simply have to run version command for first time:
+
+Install git on MacOS:
+> git --version
+
+
+If you haven't already configured git on your laptop (your email address needs to be the primary email address you have associated with your github account):
+
+If you're not sure which email address that is, check in your Github account Settings:
+It's in the Settings (there are 2 different settings) which is in the list that comes up when you click on your github profile image (profile image is sometimes in the top right-hand corner). It's near the bottom of the list.
+In Settings list (left-hand side) Emails is the 7th option. Click this to see which emails are associated with your account, and the primary one is at the top.
+
+Configure:
+> git config --global user.name "your name"
+> git config --global user.email "youremail@example.com"
+
+
+You have option of using ssh or https (ssh is preferable but either works):
+
+For ssh:
+
+to generate ssh key (the email address needs to the primary email address you have associated with your github account)
+> ssh-keygen -t ed25519 -C "youremail@example.com"
+
+add key to ssh agent
+> eval "$(ssh-agent -s)"
+> ssh-add ~/.ssh/id_ed25519
+
+print ssh key so you can copy it
+> cat ~/.ssh/id_ed25519.pub
+
+copy-paste this ssh key to your own github account:
+you need to copy-paste your ssh (once created if not already have one) to your own github account (use output of the cat command below)
+
+It's in the settings that are listed which are at bottom of list that comes up when you click on your github profile image (profile image is sometimes in the top right-hand corner).
+In Settings, go to SSH and GPG keys in list (on left-hand side), click on 'New SSH Key' green button, then paste your key there.
+
+
+clone the repo:
+
+> git clone git@github.com:zibaee-2021/ADL_Team_Grey.git
