@@ -2,7 +2,7 @@
 import torch
 import torchvision.transforms as transforms
 from torch import nn
-from torch.utils.data import DataLoader, Dataset, random_split
+from torch.utils.data import DataLoader
 import time
 import random
 import numpy as np
@@ -16,7 +16,7 @@ from src.mvae.data_handler import (
     PatchMasker,
     test_patch_masker
 )
-from src.mvae.networks_pt import (
+from src.shared_network_architectures.networks_pt import (
     MaskedAutoencoder,
     VisionTransformerEncoder,
     VisionTransformerDecoder
@@ -61,10 +61,11 @@ params = {
     "segmenter_classes": 3,  # image, background, boundary
 }
 
+report_every = 100
+
 # Hyper-parameters
 mask_ratio = 0.5
 pt_batch_size = 8
-report_every = 100
 pt_num_epochs = 10
 pt_learning_rate = 0.00001
 pt_momentum = 0.9  # not used, since using Adam optimizer
@@ -170,8 +171,8 @@ if __name__ == '__main__':
                 if its % report_every == (report_every - 1):  # print every report_every mini-batches
                     curr_time = time.perf_counter() - start_time
                     print('Epoch [%d / %d],  %d image minibatch [%4d / %4d], cumulative running loss: %.4f, uptime: %.2f' % (
-                    epoch + 1, pt_num_epochs, pt_batch_size, its + 1, len(dataloader), running_loss / len(dataloader),
-                    curr_time))
+                        epoch + 1, pt_num_epochs, pt_batch_size, its + 1, len(dataloader), running_loss / len(dataloader),
+                        curr_time))
             scheduler.step()
             epoch_end_time = time.perf_counter()
             print(
