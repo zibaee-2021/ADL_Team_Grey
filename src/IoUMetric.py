@@ -42,10 +42,10 @@ def iou_metric(preds, ground_truth, preds_are_logits=False):
     :return: IoU metric for batch.
     """
     if preds_are_logits is True: preds = nn.Softmax(dim=1)(preds)
-    ones = []
-    for i in range(3):
-        ones.append(ground_truth == i)
-    ground_truth = torch.cat(ones, dim=1)  # make one-hot encoded mask across all 3 classes.
+    # ones = []
+    # for i in range(3):
+    #     ones.append(ground_truth == i)
+    # ground_truth = torch.cat(ones, dim=1)  # make one-hot encoded mask across all 3 classes.
 
     intersection = ground_truth * preds
     union = ground_truth + preds - intersection
