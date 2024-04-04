@@ -499,7 +499,7 @@ if __name__ == '__main__':
 
 
     ###############
-    # MVAE training
+    # MVAE training
     if run_pretraining: # Run training
         print("In pre-training")
         start_time=time.time()
