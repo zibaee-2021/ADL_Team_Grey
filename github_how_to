@@ -1,20 +1,23 @@
-If you haven't already installed git, apparently for MacOs, you simply have to run version command for first time:
+If you haven't already installed git, apparently for MacOs, you simply have to run --version command for first time:
+The following are all terminal commands:
 
+
+INSTALL ------------------------------------
 Install git on MacOS:
 > git --version
 
-
+CONFIGURE ------------------------------------
 If you haven't already configured git on your laptop (your email address needs to be the primary email address you have associated with your github account):
 
 If you're not sure which email address that is, check in your Github account Settings:
 It's in the Settings (there are 2 different settings) which is in the list that comes up when you click on your github profile image (profile image is sometimes in the top right-hand corner). It's near the bottom of the list.
 In Settings list (left-hand side) Emails is the 7th option. Click this to see which emails are associated with your account, and the primary one is at the top.
 
-Configure:
 > git config --global user.name "your name"
 > git config --global user.email "youremail@example.com"
 
 
+GIT CLONE ------------------------------------
 You have option of using ssh or https (ssh is preferable but either works):
 
 For ssh:
@@ -35,7 +38,38 @@ you need to copy-paste your ssh (once created if not already have one) to your o
 It's in the settings that are listed which are at bottom of list that comes up when you click on your github profile image (profile image is sometimes in the top right-hand corner).
 In Settings, go to SSH and GPG keys in list (on left-hand side), click on 'New SSH Key' green button, then paste your key there.
 
+If not already, cd to folder into which you want to clone the repo
 
-clone the repo:
-
+for SSH:
 > git clone git@github.com:zibaee-2021/ADL_Team_Grey.git
+
+or for HTTPS:
+> git clone https://github.com/zibaee-2021/ADL_Team_Grey.git
+
+---------------------------------------------------------------------------------------------------------
+
+(If not already, cd to folder ADL_Team_Grey)
+
+Once cloned, move the python file(s) that you have written, into the `src` subfolder (making sure the file name(s) is/are different from any existing ones).
+
+And add it to the "staging area":
+
+> git add [filename]
+
+> git commit -m "your commit message describing what you have changed"
+
+Now to push it to the remote repository (i.e. on Github) so that others can see it and if they want they can then pull a copy to their own machines.
+
+> git push
+
+---------------------------------------------------------------------------------------------------------
+Before starting your coding session, it's typically a good idea to always start off by pulling the remote repo to get all the latest changes that might have been
+pushed by others in the team.
+
+> git pull
+
+Then it is common to do regular git commits after each chunk of changes you do, ideally including all the changes that are relevant for some specific functionality
+and to provide a descriptive message.
+Over the course of a day you might do 2-10 commits, for example.
+And 1 or 2 pushes.
+
