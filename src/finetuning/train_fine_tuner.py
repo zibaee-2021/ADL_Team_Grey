@@ -44,11 +44,12 @@ params = {
     "patch_size": 16,
 
     # vision transformer encoder
-    "vit_num_features": 768,        # 768 number of features created by the vision transformer
-    "vit_num_layers": 12,            # 12ViT parameter
-    "vit_num_heads": 8,             # 8 ViT parameter
-    "vit_hidden_dim": 512,          # 512 ViT parameter
-    "vit_mlp_dim": 1024,             # 1024 ViT parameter
+    "vit_num_features": 768,  # 768 number of features created by the vision transformer
+    "vit_num_layers": 14,  # 12,  # 12ViT parameter
+    "vit_num_heads": 8,  # 8 ViT parameter
+    "vit_hidden_dim": 1024,  # 512,  # 512 ViT parameter
+    "vit_mlp_dim": 2048,  # 1024,  # 1024 ViT parameter
+
 
     # vision transformer decoder
     "decoder_hidden_dim": 1024,    # 1024 ViT decoder first hidden layer dimension
@@ -68,7 +69,7 @@ test_size = 1.0 - train_size - val_size
 
 # Hyper-parameters
 ft_batch_size = 8
-ft_num_epochs = 1 # 30
+ft_num_epochs = 1 # 5  # 150s / epoch -> conservative 200s -> 18/hour -> 120 overnight ok
 ft_lr = 0.1
 ft_step = 5
 ft_gamma = 0.2

@@ -24,18 +24,18 @@ from src.shared_network_architectures.networks_pt import (
 
 ## Control
 ## Training
-# run_pretraining = True
-# check_masking = False
-# check_infilling = False
-# save_models = True
-# load_models = False
+run_pretraining = True
+check_masking = False
+check_infilling = False
+save_models = True
+load_models = False
 
 ## Testing
-run_pretraining = False
-check_masking = True
-check_infilling = True
-save_models = False
-load_models = True
+# run_pretraining = False
+# check_masking = True
+# check_infilling = True
+# save_models = False
+# load_models = True
 
 ## Definitions
 params = {
@@ -46,10 +46,10 @@ params = {
 
     # vision transformer encoder
     "vit_num_features": 768,  # 768 number of features created by the vision transformer
-    "vit_num_layers": 12,  # 12ViT parameter
+    "vit_num_layers": 14, #12,  # 12ViT parameter
     "vit_num_heads": 8,  # 8 ViT parameter
-    "vit_hidden_dim": 512,  # 512 ViT parameter
-    "vit_mlp_dim": 1024,  # 1024 ViT parameter
+    "vit_hidden_dim": 1024, #512,  # 512 ViT parameter
+    "vit_mlp_dim": 2048, #1024,  # 1024 ViT parameter
 
     # vision transformer decoder
     "decoder_hidden_dim": 1024,  # 1024 ViT decoder first hidden layer dimension
@@ -66,9 +66,9 @@ report_every = 100
 # Hyper-parameters
 mask_ratio = 0.5
 pt_batch_size = 8
-pt_num_epochs = 10
-pt_learning_rate = 0.00001
-pt_momentum = 0.9  # not used, since using Adam optimizer
+pt_num_epochs = 3
+pt_learning_rate = 0.00001  # 0.00001
+# pt_momentum = 0.9  # not used, since using Adam optimizer
 pt_step = 2
 pt_gamma = 0.3
 
@@ -142,10 +142,12 @@ if __name__ == '__main__':
         transform = transforms.Compose([transforms.ToTensor()])
 
         dataset = Animals10Dataset(data_dir, (params['image_size'], params['image_size']), transform=transform)
-        print(dataset.root_dir)
-        print(dataset.images)
-        dataloader = DataLoader(dataset, batch_size=pt_batch_size, shuffle=True,
-                                drop_last=True)  # drop last batch so that all batches are complete
+
+        dataloader = DataLoader(dataset,
+                                batch_size=pt_batch_size,
+                                shuffle=True,
+                                drop_last=True,
+                                num_workers=2)  # drop last batch so that all batches are complete
 
         # Main training loop
         losses = []
@@ -153,6 +155,7 @@ if __name__ == '__main__':
             epoch_start_time = time.perf_counter()
             running_loss = 0.0
             for its, input_images in enumerate(dataloader):
+                # print(f"[{its}, {len(dataloader)}] {time.perf_counter() - epoch_start_time:.0f}s")
                 input_images = input_images.to(device)
 
                 # Add random masking to the input images
@@ -188,7 +191,7 @@ if __name__ == '__main__':
             torch.save(decoder.state_dict(), decoder_path)
 
         date_str = time.strftime("_%H.%M_%d-%m-%Y", time.localtime(time.time()))
-        with open(os.path.join(mvae_dir, "pt_losses" + date_str + ".txt", 'w')) as f:
+        with open(os.path.join(mvae_dir, "pt_losses" + date_str + ".txt"), 'w') as f:
             for i, loss in enumerate(losses):
                 f.write(f'{i}  {loss}\n')
         print("Models saved\nFinished")

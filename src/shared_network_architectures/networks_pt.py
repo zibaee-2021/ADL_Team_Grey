@@ -79,8 +79,7 @@ class VisionTransformerDecoder(nn.Module):
         self.CNN_channels = params['decoder_CNN_channels']
         self.upscale = params['decoder_scale_factor']
         self.CNN_patch = int(self.image_size / 2 ** 2 / self.upscale)
-        self.hidden_dim_two = int(
-            self.CNN_channels * self.CNN_patch ** 2)  # 5 upsampling layers, halving channels (except last layer)
+
         self.fc1 = nn.Linear(self.input_dim, self.hidden_dim_one)
         self.fc2 = nn.Linear(self.hidden_dim_one, self.CNN_channels * self.CNN_patch * self.CNN_patch)
         self.unflatten = nn.Unflatten(1, (self.CNN_channels, self.CNN_patch, self.CNN_patch))
@@ -91,15 +90,39 @@ class VisionTransformerDecoder(nn.Module):
         self.relu = nn.ReLU(inplace=True)
         self.sigmoid = nn.Sigmoid()
 
+        ## NEW- include normalisation
+        self.batch_norm_fc1 = nn.BatchNorm1d(self.hidden_dim_one)
+        self.batch_norm_fc2 = nn.BatchNorm1d(self.CNN_channels * self.CNN_patch * self.CNN_patch)
+        self.batch_norm_conv1 = nn.BatchNorm2d(int(self.CNN_channels / 2))
+        self.batch_norm_conv2 = nn.BatchNorm2d(self.num_channels)
+
+    ## NEW FORWARD
     def forward(self, x):
-        x = x.view(x.size(0), -1)  # Unecessary??? Flatten the input tensor
         x = self.relu(self.fc1(x))
+        x = self.batch_norm_fc1(x)
         x = self.relu(self.fc2(x))
+        x = self.batch_norm_fc2(x)
         x = self.unflatten(x)
-        x = self.relu(self.conv1(x))  #  Output: B * 16 * 14 * 14
-        x = self.upsample = F.interpolate(x, scale_factor=self.upscale, mode='bilinear',
-                                          align_corners=False)  #  Output: B * 8 * 112 * 112
-        x = self.sigmoid(self.conv2(x))  # Output: B * 3 * 224 * 224
-        x = x.view(-1, self.num_channels, self.image_size, self.image_size)  #  shouldnt be necessary
-        return x
+        x = self.relu(self.conv1(x))
+        x = self.batch_norm_conv1(x)
+        x = F.interpolate(x, scale_factor=self.upscale,
+                          mode='bilinear',
+                          align_corners=False)
+        x = self.relu(self.conv2(x))
+        x = self.batch_norm_conv2(x)
+        x = self.sigmoid(x)
+        return x.view(-1, self.num_channels, self.image_size, self.image_size)
+
+    ## OLD FORWARD
+    # def forward(self, x):
+    #     x = x.view(x.size(0), -1)  # Unecessary??? Flatten the input tensor
+    #     x = self.relu(self.fc1(x))
+    #     x = self.relu(self.fc2(x))
+    #     x = self.unflatten(x)
+    #     x = self.relu(self.conv1(x))  #  Output: B * 16 * 14 * 14
+    #     x = self.upsample = F.interpolate(x, scale_factor=self.upscale, mode='bilinear',
+    #                                       align_corners=False)  #  Output: B * 8 * 112 * 112
+    #     x = self.sigmoid(self.conv2(x))  # Output: B * 3 * 224 * 224
+    #     x = x.view(-1, self.num_channels, self.image_size, self.image_size)  #  shouldnt be necessary
+    #     return x
 
