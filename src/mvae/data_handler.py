@@ -14,7 +14,14 @@ class Animals10Dataset(Dataset):
         self.root_dir = root_dir
         self.target_size = target_size
         self.transform = transform
-        self.images = sorted([os.path.join(root_dir,f) for f in os.listdir(self.root_dir)])
+
+        # Get all paths in the root directory
+        all_paths = [os.path.join(root_dir, f) for f in os.listdir(self.root_dir)]
+
+        # Filter out directories, keep only files
+        self.images = sorted([f for f in all_paths if os.path.isfile(f)])
+
+        print(f"Number of images: {len(self.images)}")  # Add this line
 
     def __len__(self):
         return len(self.images)

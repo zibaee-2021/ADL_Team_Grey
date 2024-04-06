@@ -1,14 +1,22 @@
-# This is just to check you have all the data saved
-# please use the notebook to access the Animals-10 data
+# Use the README.md to setup the datasets correctly
 
-from src.utils.paths import *  # bad practice in general
 import os
+from src.utils.paths import animals_10_dir, oxford_3_dir
+
+def main():
+    paths = [
+        animals_10_dir,
+        os.path.join(animals_10_dir, "raw-img"),
+        oxford_3_dir,
+        os.path.join(oxford_3_dir, "images"),
+        os.path.join(oxford_3_dir, "annotations/trimaps"),
+        # add more as necessary
+    ]
+
+    for path in paths:
+        assert os.path.exists(path), f"Path does not exist: {path}"
+
+    print("Datasets Correctly Setup!")
 
 if __name__ == '__main__':
-    assert os.path.exists(animals_10_dir)
-    assert os.path.exists(os.path.join(animals_10_dir,"raw-img"))
-    assert os.path.exists(oxford_3_dir)
-    assert os.path.exists(os.path.join(oxford_3_dir,"images"))
-    assert os.path.exists(os.path.join(oxford_3_dir,"annotations/trimaps"))
-    # add more as necessary
-    print("Directories for datasets exist in expected location.")
+    main()
