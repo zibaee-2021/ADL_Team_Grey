@@ -1,7 +1,4 @@
 import sys
-sys.path.insert(0, '/cs/student/projects1/aibh/rwardle/ADL_Team_Grey')
-
-# External packages
 import torch
 import torchvision.transforms as transforms
 from torch import nn
