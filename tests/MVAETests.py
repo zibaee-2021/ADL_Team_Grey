@@ -40,12 +40,16 @@ class MVAETests(TestCase):
                                [[0.8854, 0.5739], [0.2666, 0.6274]],
                                [[0.2696, 0.4414], [0.2969, 0.8317]]]], requires_grad=True)
         # ground_truth has shape (2, 1, 2, 2) for (batch_size, channel, height, width)
-        ground_truth = torch.tensor([[[[0, 1], [2, 0]]],
-                                     [[[1, 2], [1, 1]]]], dtype=torch.long)
+        ground_truth = torch.tensor([[[[0, 1], [2, 0]],
+                                      [[1, 2], [1, 1]],
+                                      [[1, 2], [1, 1]]],
+                                     [[[1, 2], [1, 1]],
+                                      [[1, 2], [1, 1]],
+                                      [[1, 2], [1, 1]]]], dtype=torch.long)
         actual = ioumet.IoULoss(preds_are_logits=True)(preds, ground_truth)
         actual = actual.item()
         print(actual)
-        expected = 1.5112615823745728
+        expected = 1.0935465097427368
         self.assertEqual(expected, actual)
 
     def test_custom_iou_metric(self):
