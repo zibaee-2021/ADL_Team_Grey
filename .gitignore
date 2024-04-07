@@ -11,4 +11,5 @@ Oxford-IIIT-Pet
 *.jpeg
 *.csv
 *hdf5
-
+*.pyc
+*__pycache__
