@@ -1,4 +1,5 @@
 *.idea
+*datasets
 *dataset
 Animals-10
 *.pth
@@ -11,5 +12,6 @@ Oxford-IIIT-Pet
 *.jpeg
 *.csv
 *hdf5
-*.pyc
+/src/mvae/wandb/
+wandb/
 __pycache__/
