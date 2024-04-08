@@ -19,7 +19,7 @@ class MVAETests(TestCase):
                                 [[0.0, 0.0], [0.0, 0.0]],
                                 [[0.0, 0.0], [0.0, 0.0]]]])
 
-        # create another tensor of shape shape as preds but move it so no overlapp
+        # create another tensor of same shape as preds but move it so no overlap
         self.not_overlapping_gt = torch.zeros_like(self.preds)
         offset_height, offset_width = 2, 2
         self.not_overlapping_gt[1, :, :offset_height, :offset_width] = 1
