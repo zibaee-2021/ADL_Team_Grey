@@ -19,11 +19,12 @@ class IoULoss(nn.Module):
         :return: Intersection over Union loss. Can be raw loss or negative log loss
         """
         if use_negative_log_loss:
-            loss = iou_metric(preds, ground_truth, self.preds_are_logits)
-            result = -1. * loss.log()
+            iou = iou_metric(preds, ground_truth, self.preds_are_logits)
+            loss = -1. * iou.log()
         else:
-            result = 1.0 - iou_metric(preds, ground_truth, self.preds_are_logits)
-        return result
+            iou = iou_metric(preds, ground_truth, self.preds_are_logits)
+            loss = 1.0 - iou
+        return loss
 
 
 def iou_metric(preds, ground_truth, preds_are_logits=False):
@@ -53,3 +54,11 @@ def iou_metric(preds, ground_truth, preds_are_logits=False):
     iou = (intersection.sum(dim=(1, 2, 3)) + 0.0001) / (union.sum(dim=(1, 2, 3)) + 0.0001)
     iou_mean = iou.mean()
     return iou_mean
+
+
+# def torch_iou_metric(ground_truth_bbox, prediction_bbox):
+#     from torchvision import ops
+#
+#     # Get iou.
+#     iou = ops.box_iou(ground_truth_bbox, prediction_bbox)
+#     print('IOU : ', iou.numpy()[0][0])
