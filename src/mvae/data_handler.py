@@ -1,6 +1,7 @@
 import os
 import random
 import time
+import glob
 
 import torch
 from PIL import Image
@@ -30,6 +31,16 @@ class Animals10Dataset(Dataset):
 
         # Filter out directories, keep only files
         self.images = sorted([f for f in all_paths if os.path.isfile(f)])
+
+        if self.images is None or self.images == []:  # assume the original dir structure of `raw-img/**/<images files>`
+            img_dir = os.path.join(root_dir, '**')
+            accepted_files = []
+            accepted_fs = [os.path.join(img_dir, '*.jpg'),
+                              os.path.join(img_dir, '*.jpeg'),
+                              os.path.join(img_dir, '*.png')]
+            for accepted_f in accepted_fs:
+                accepted_files.extend(glob.glob(accepted_f, recursive=False))
+            self.images = accepted_files
 
         print(f"Number of images: {len(self.images)}")  # Add this line
 
