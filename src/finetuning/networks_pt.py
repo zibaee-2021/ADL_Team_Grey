@@ -49,3 +49,5 @@ class SegmentationClassifier(nn.Module):
         x = self.conv3(x)
 
         return x
+
+

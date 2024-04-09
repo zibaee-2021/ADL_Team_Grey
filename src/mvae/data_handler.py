@@ -1,5 +1,8 @@
 import os
 import random
+import time
+
+import torch
 from PIL import Image
 from matplotlib import pyplot as plt
 from torch.utils.data import Dataset
@@ -13,7 +16,14 @@ class Animals10Dataset(Dataset):
     def __init__(self, root_dir, target_size=(224, 224), transform=None):
         self.root_dir = root_dir
         self.target_size = target_size
-        self.transform = transform
+        if transform:
+            self.transform = transform
+        else:
+            self.transform = transforms.Compose([
+                transforms.Resize(self.target_size),
+                transforms.ToTensor(),
+                transforms.Normalize(mean=[0.45, 0.5, 0.55], std=[0.2, 0.2, 0.2])  #  normalising helps convergence
+            ])
 
         # Get all paths in the root directory
         all_paths = [os.path.join(root_dir, f) for f in os.listdir(self.root_dir)]
@@ -34,9 +44,11 @@ class Animals10Dataset(Dataset):
         if img.mode != 'RGB':
             img = img.convert('RGB')
 
-        img = img.resize(self.target_size)  # Resize the image
+
         if self.transform:
             img = self.transform(img)
+        else:
+            img = img.resize(self.target_size)  # Resize the image
         return img
 
 class PatchMasker:
@@ -48,6 +60,7 @@ class PatchMasker:
     Returns:
         torch.Tensor: The masked image.
     """
+
     def __init__(self, patch_size=32, num_patches_to_mask=5):
         self.patch_size = patch_size
         self.num_patches_to_mask = num_patches_to_mask
@@ -67,6 +80,7 @@ class PatchMasker:
 
         # Apply the mask to the image
         masked_image = image.clone()
+        masks = torch.ones_like(masked_image)
         for index in masked_patch_indices:
             i, j = index
             y_start = i * self.patch_size
@@ -74,30 +88,53 @@ class PatchMasker:
             x_start = j * self.patch_size
             x_end = min((j + 1) * self.patch_size, width)
             masked_image[:, :, y_start:y_end, x_start:x_end] = 0  # Set masked patch to zero
+            masks[:, :, y_start:y_end, x_start:x_end] = 0
 
-        return masked_image
+        return masked_image, masks
 
 
-def test_patch_masker(patch_masker, image_file):
-    """
-    Takes
-        patch masker object, link to image file
-    Displays
-        original and patched image
-    Returns
-        input image, masked image tensor
-    """
-    image = Image.open(image_file)
-    image = image.resize((224,224))
-    transform = transforms.ToTensor()
-    input_image = transform(image).unsqueeze(0)
-    masked_image_tensor = patch_masker.mask_patches(input_image)
-    fig, axes = plt.subplots(1, 2, figsize=(10, 5))
-    axes[0].axis('off')
-    axes[1].axis('off')
-    axes[0].imshow(input_image[0].numpy().transpose((1,2,0)))
-    axes[1].imshow(masked_image_tensor[0].numpy().transpose((1,2,0)))
-    plt.show()
+    def test(self, model, loader, display, params, device):
+        """
+        Takes
+            patch masker object, link to image file
+        Displays
+            original and patched image
+        Returns
+            input image, masked image tensor
+        """
+        images = next(iter(loader))
+        num_images = min(images.size(0), 4)
+        masked_images, masks = self.mask_patches(images)
+        with torch.no_grad():
+            infill_images = model(masked_images.to(device))
+            inpainted_images = masked_images.to(device) + infill_images.to(device) * (masked_images.to(device) == 0).float()
 
-    return input_image[0], masked_image_tensor
-
+        if display is False:
+            plt.ioff()
+        fig, axes = plt.subplots(4, num_images, figsize=(12, 9))
+        time.sleep(1)
+        for i in range(num_images):
+            if num_images > 1:
+                ax0 = axes[0, i]
+                ax1 = axes[1, i]
+                ax2 = axes[2, i]
+                ax3 = axes[3, i]
+            else:
+                ax0 = axes[0]
+                ax1 = axes[1]
+                ax2 = axes[2]
+                ax3 = axes[3]
+            ax0.axis('off')
+            ax0.set_title('Image')
+            ax0.imshow(images[i].permute(1, 2, 0))
+            ax0.set_title('Masked Image')
+            ax1.imshow(masked_images[i].permute(1, 2, 0))
+            ax2.set_title('Infill')
+            ax2.imshow(infill_images[i].cpu().permute(1, 2, 0))
+            ax3.set_title('Inpainted')
+            ax3.imshow(inpainted_images[i].cpu().permute(1, 2, 0))
+        plt.tight_layout()
+        plt.show()
+        date_str = time.strftime("_%H.%M_%d-%m-%Y", time.localtime(time.time()))
+        plt.savefig('masks' + date_str + '.png')
+        plt.close()
