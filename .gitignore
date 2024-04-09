@@ -1,6 +1,7 @@
 *.idea
 *datasets
 *dataset
+*Data
 Animals-10
 *.pth
 *.pt
