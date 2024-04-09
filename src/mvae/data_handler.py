@@ -14,16 +14,15 @@ class Animals10Dataset(Dataset):
     """
     Loads and cleans up images in Animals-10 dataset
     """
-    def __init__(self, root_dir, target_size=(224, 224), transform=None):
+    def __init__(self, root_dir, target_size=(224, 224)):
         self.root_dir = root_dir
         self.target_size = target_size
-        if transform:
-            self.transform = transform
-        else:
-            self.transform = transforms.Compose([
+        self.transform = transforms.Compose([
                 transforms.Resize(self.target_size),
                 transforms.ToTensor(),
-                transforms.Normalize(mean=[0.45, 0.5, 0.55], std=[0.2, 0.2, 0.2])  #  normalising helps convergence
+                transforms.Normalize(
+                    mean=[0.45, 0.5, 0.55],
+                    std=[0.2, 0.2, 0.2])  #  normalising helps convergence
             ])
 
         # Get all paths in the root directory
@@ -55,13 +54,11 @@ class Animals10Dataset(Dataset):
         if img.mode != 'RGB':
             img = img.convert('RGB')
 
-
+        img = img.resize(self.target_size)  # Resize the image
         if self.transform:
             img = self.transform(img)
-        else:
-            img = img.resize(self.target_size)  # Resize the image
-        return img
 
+        return img
 class PatchMasker:
     """
     Divide the image into non-overlapping patches and randomly mask a fixed number of patches.
@@ -71,7 +68,6 @@ class PatchMasker:
     Returns:
         torch.Tensor: The masked image.
     """
-
     def __init__(self, patch_size=32, num_patches_to_mask=5):
         self.patch_size = patch_size
         self.num_patches_to_mask = num_patches_to_mask
@@ -104,7 +100,7 @@ class PatchMasker:
         return masked_image, masks
 
 
-    def test(self, model, loader, display, params, device):
+    def test(self, model, loader, display, device):
         """
         Takes
             patch masker object, link to image file
@@ -116,6 +112,7 @@ class PatchMasker:
         images = next(iter(loader))
         num_images = min(images.size(0), 4)
         masked_images, masks = self.mask_patches(images)
+        model.eval()
         with torch.no_grad():
             infill_images = model(masked_images.to(device))
             inpainted_images = masked_images.to(device) + infill_images.to(device) * (masked_images.to(device) == 0).float()
