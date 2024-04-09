@@ -4,6 +4,7 @@ import torch.nn as nn
 import time
 import random
 import numpy as np
+import os
 
 # our code
 from src.utils.paths import *
@@ -18,7 +19,8 @@ from src.finetuning.networks_pt import (
 )
 from src.shared_network_architectures.networks_pt import (
     VisionTransformerEncoder,
-    VisionTransformerDecoder
+    CNNDecoder
+    # VisionTransformerDecoder
 )
 
 ## Control
@@ -40,7 +42,7 @@ load_models = False
 params = {
     # # image
     "image_size": 224,  # number of pixels square
-    "num_channels": 3,  #  RGB image -> 3 channels       # RGB image -> 3 channels
+    "num_channels": 3,  # RGB image -> 3 channels       # RGB image -> 3 channels
     "patch_size": 16,
 
     # vision transformer encoder
@@ -55,6 +57,9 @@ params = {
     "decoder_hidden_dim": 1024,    # 1024 ViT decoder first hidden layer dimension
     "decoder_CNN_channels": 16,    #
     "decoder_scale_factor": 4,     #
+
+    # cnn decoder
+    'num_classes': 3,
 
     # segmentation model
     "segmenter_hidden_dim": 128,
@@ -122,10 +127,11 @@ if __name__ == '__main__':
 
     device = get_optimal_device()
 
+
     ## Initialize models
     encoder = VisionTransformerEncoder(params)
-    segmentation_decoder = VisionTransformerDecoder(params)
-    ft_segmentation_model = SemanticSegmenter(encoder, segmentation_decoder).to(device)
+    segmentation_decoder = CNNDecoder(params, output_channels=params['num_classes'])
+    # ft_segmentation_model = SemanticSegmenter(encoder, segmentation_decoder).to(device)
 
     if load_models and os.path.isfile(segmentation_decoder_path):
         print("Loading pre-saved segmentation model")
