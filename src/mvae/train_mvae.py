@@ -8,6 +8,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import wandb
 from datetime import datetime
+from src.IoUMetric import IoULoss
 
 # our code
 from src.utils.paths import *
@@ -113,7 +114,9 @@ if __name__ == '__main__':
     params['num_masks'] = num_masks
 
     # Keep track of params if using wandb:
-    wandb.init(project="mvae", entity="adl_team_grey", config=params)
+    # wandb.init(project="mvae", entity="adl_team_grey", config=params)
+    wandb.init(project="mvae", entity="ucl_teamgrey", config=params)  # entity on my (Shahin) own Wandb account
+
 
     # dataloader and model definition
     # load and pre-process Animals-10 dataset and dataloader & transform to normalize the data
@@ -129,7 +132,8 @@ if __name__ == '__main__':
     encoder, pt_decoder = get_network(params, params['num_channels'])
     if load_models:
         assert os.path.isfile(encoder_path), f"Expected to laod model but no path exists {encoder_path}"
-        encoder.load_state_dict(torch.load(encoder_path), strict=False)
+        # encoder.load_state_dict(torch.load(encoder_path), strict=False)
+        encoder.load_state_dict(torch.load(encoder_path))
     else:  # we will train
         initialise_weights(encoder)
     if load_models:
@@ -152,7 +156,12 @@ if __name__ == '__main__':
         print("In pre-training")
         start_time = time.perf_counter()
 
-        pt_criterion = nn.MSELoss()
+        loss_func_choice = {'mse': nn.MSELoss(),
+                                'cel': nn.CrossEntropyLoss(),
+                                'iou': IoULoss(preds_are_logits=False).forward}
+        pt_criterion = loss_func_choice['mse']
+        # pt_criterion = nn.MSELoss()  # this was here before
+
         pt_optimizer = get_optimizer(vae_model, params)
 
         # Main training loop
@@ -161,7 +170,6 @@ if __name__ == '__main__':
             epoch_start_time = time.perf_counter()
             running_loss = 0.0
 
-            ##
             for its, input_images in enumerate(pt_dataloader):
                 input_images = input_images.to(device)
                 masked_images, masks = patch_masker.mask_patches(input_images)
@@ -169,6 +177,7 @@ if __name__ == '__main__':
                 # Forward pass & compute the loss
                 outputs = vae_model(masked_images)
                 outputs = torch.softmax(outputs, dim=1)  #  squash to 0-1 pixel values
+
                 # TODO: CHECK THE BELOW, WHERE HOULD WE BE CALCULATING THE LOSS
                 masked_outputs = outputs * masks  # dont calculate loss for masked portion
                 loss = pt_criterion(masked_outputs, input_images)
