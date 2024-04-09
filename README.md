@@ -61,3 +61,51 @@ To run the verification script, follow these steps:
 ```bash
 python -m src.setup.main
 ```
+## Experiment Tracking
+
+To facilitate experiment tracking, parameter management, and output visualization, we'll be utilizing [WandB](https://wandb.ai/home).
+
+### Setup Instructions
+
+1. **Create an Account**: Begin by creating an account on WandB.
+
+2. **Provide Username**: Send your WandB username to Rich via WhatsApp at +447506219401. Rich will then add you to our organization, granting access to all previous experiments.
+
+3. **Install WandB**: Install WandB by running the following command in your terminal:
+    ```
+    pip install wandb
+    ```
+
+4. **Authenticate**: After installation, run `wandb login` in your terminal. This will prompt you to authenticate with your WandB account. Upon successful authentication, you'll be ready to proceed.
+
+### Experiment Tracking
+
+- **Initialization**: To begin tracking an experiment, include the following line at the top of your experiment script:
+    ```python
+    import wandb
+
+    # your models/experiment parameters here
+    params = {
+        'example',
+        'params'
+    }
+
+    wandb.init(project="mvae", entity="adl_team_grey", config=params)
+    ```
+
+    - Modify the `project` parameter to specify the project name. This will allow all runs within a project to be compared (check out the project page in WandB for an example). Ensure `entity` is kept as "adl_team_grey" to ensure visibility within the team.
+
+- **Logging**: Throughout your experiment, use `wandb.log()` to log relevant metrics and outputs. For example:
+    ```python
+    wandb.log({"Epoch Loss": epoch_loss, "Epoch Time": epoch_time})
+    ```
+
+    - You can log various metrics, including numerical values, text, and even plots. For image outputs, simply log the matplotlib plot object:
+    ```python
+    
+    wandb.log({plot_name: plt})
+    ```
+
+    - Ensure consistency in logged metrics for easier comparison across experiments.
+
+With these steps, you'll effectively track experiments, parameters, and outputs using WandB, facilitating collaboration and analysis within our team.
