@@ -53,7 +53,7 @@ params = {
 
     # Network
     'network': "CNN",  # CNN, ViT, Linear
-    'num_features': 256,  # 768
+    'num_features': 768,  # 768
     'hidden_dim': 2048,
     "vit_num_layers": 4,  # 12ViT parameter
     "vit_num_heads": 8,  # 8 ViT parameter
@@ -62,12 +62,12 @@ params = {
     # Hyper paramaters
     'pt_batch_size': 32,
     'mask_ratio': 0.25,
-    'learning_rate': 0.001,
+    'learning_rate': 0.0001,
     'pt_momentum': 0.9,  # not used in Adam
 
     # Training
     'optimizer': "Adam",  # Adam, AdamW, SGD
-    'pt_num_epochs': 1,
+    'pt_num_epochs': 8,
 }
 
 mask_ratio = params['mask_ratio']
@@ -95,6 +95,7 @@ if __name__ == '__main__':
 
     if not os.path.exists(models_dir):
         os.mkdir(models_dir)
+
     model_path = os.path.join(models_dir, model_file)
     encoder_path = os.path.join(models_dir, encoder_file)
     decoder_path = os.path.join(models_dir, decoder_file)
@@ -115,12 +116,11 @@ if __name__ == '__main__':
 
     # Keep track of params if using wandb:
     wandb.init(project="mvae", entity="adl_team_grey", config=params)
-    # wandb.init(project="mvae", entity="ucl_teamgrey", config=params)  # entity on my (Shahin) own Wandb account
+    # wandb.init(project="mvae", entity="adl_team_grey", config=params)  # entity on my (Shahin) own Wandb account
 
 
     # dataloader and model definition
     # load and pre-process Animals-10 dataset and dataloader & transform to normalize the data
-    transform = transforms.Compose([transforms.ToTensor()])
     pt_dataset = Animals10Dataset(root_dir=os.path.join(animals_10_dir, "raw-img"))
     pt_dataloader = DataLoader(pt_dataset,
                                batch_size=params['pt_batch_size'],
@@ -148,10 +148,11 @@ if __name__ == '__main__':
 
     # test everything is working
     print("View images, masked imaged and predicted images before starting")
-    patch_masker.test(vae_model, pt_dataloader, True, params, device)
+    patch_masker.test(vae_model, pt_dataloader, True, device)
 
     ###############
     #  mvae training
+    vae_model.train()
     if run_pretraining_and_save:
         print("In pre-training")
         start_time = time.perf_counter()
@@ -171,6 +172,9 @@ if __name__ == '__main__':
             running_loss = 0.0
 
             for its, input_images in enumerate(pt_dataloader):
+                # # TODO Remove - just to speed up testing
+                # if its > 101:
+                #     break
                 input_images = input_images.to(device)
                 masked_images, masks = patch_masker.mask_patches(input_images)
 
@@ -189,7 +193,6 @@ if __name__ == '__main__':
 
                 # Calculate average loss
                 average_loss = running_loss / (its + 1)
-
                 running_loss += loss.detach().cpu().item()
 
                 # Log metrics to wandb
@@ -260,7 +263,8 @@ if __name__ == '__main__':
         plt.close()
 
     if check_masking_and_infilling:
-        patch_masker.test(vae_model, pt_dataloader, True, params, device)
-
+        vae_model.eval()
+        for _ in range(4):
+            patch_masker.test(vae_model, pt_dataloader, True, device)
 
     print("MVAE Script complete")
