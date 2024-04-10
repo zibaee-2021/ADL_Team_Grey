@@ -114,8 +114,8 @@ if __name__ == '__main__':
     params['num_masks'] = num_masks
 
     # Keep track of params if using wandb:
-    # wandb.init(project="mvae", entity="adl_team_grey", config=params)
-    wandb.init(project="mvae", entity="ucl_teamgrey", config=params)  # entity on my (Shahin) own Wandb account
+    wandb.init(project="mvae", entity="adl_team_grey", config=params)
+    # wandb.init(project="mvae", entity="ucl_teamgrey", config=params)  # entity on my (Shahin) own Wandb account
 
 
     # dataloader and model definition
