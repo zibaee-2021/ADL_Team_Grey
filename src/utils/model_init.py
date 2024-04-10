@@ -14,3 +14,4 @@ def initialise_weights(model):
                 nn.init.normal_(param, mean=0.0, std=0.02)  # Default initialization for other layers
         elif 'bias' in name:
             nn.init.constant_(param, 0.0)  # Initialize biases to zero
+

@@ -123,116 +123,47 @@ def one_hot_to_tensor(one_hot):
 #
 #         return train_loader, val_loader, test_loader
 
+def view_training(model, loader, display, device):
+    images, labels = next(iter(loader))
+    num_images = min(images.size(0),4)
 
-## NEW - this relies on manual train test validation split??
-class OxfordPetDataset(Dataset):
-    """
-    Takes
-        links to jpg images and trimap pngs
-    Returns
-        image tensors and classification map
-    """
-    def __init__(self, image_dir, label_dir, params, transform=None):
-        self.image_dir = image_dir
-        self.label_dir = label_dir
-        self.params = params
-        self.image_size = params['image_size']
-        self.segment_classes = params['segmenter_classes']
-        self.image_filenames = [filename for filename in os.listdir(image_dir) if filename.endswith('.jpg')]
-        if transform is not None:
-            self.transform = transform
+    outputs = model(images.to(device))
+    outputs = outputs.cpu().detach()
+    images, labels = images.cpu(), labels.cpu()
+    output_labels = torch.argmax(outputs.cpu().detach(), dim=1)
+
+    if display is False:
+        plt.ioff()
+    fig, axes = plt.subplots(4, num_images, figsize=(3*num_images,8))
+    time.sleep(1)
+    for i in range(num_images):
+        if num_images>1:
+            ax0 = axes[0,i]
+            ax1 = axes[1,i]
+            ax2 = axes[2,i]
+            ax3 = axes[3,i]
         else:
-            self.transform = transforms.Compose([transforms.Resize((self.image_size, self.image_size)),
-                                        transforms.ToTensor(),
-                                        transforms.Normalize(mean=[0.45, 0.5, 0.55], std=[0.2, 0.2, 0.2]) # normalising helps convergence
-                                        ])
-
-    def __len__(self):
-        return len(self.image_filenames)
-
-    def __getitem__(self, idx):
-        # if torch.is_tensor(idx):
-        #     idx = idx.tolist()
-        #
-        # image, target = self.original_dataset[idx]
-
-        image_path = os.path.join(self.image_dir, self.image_filenames[idx])
-        label_path = os.path.join(self.label_dir, self.image_filenames[idx].replace('.jpg', '.png'))
-
-        # read in image and convert to tensor
-        image = Image.open(image_path).convert('RGB')
-        image_tensor = self.transform(image)
-
-        # read in trimap, 1=foreground, 2=background, 3=indeterminate/boundary
-        trimap = Image.open(label_path)
-
-        target_transform = transforms.Compose([
-            transforms.Resize((self.params['image_size'], self.params['image_size'])),
-            # Resize the input PIL Image to given size.
-            transforms.ToTensor(),  # Convert a PIL Image to PyTorch tensor.
-            transforms.Lambda(lambda x: ((x * 255) - 1).long())])  # Convert back to class values 0,1,2
-        trimap_tensor = target_transform(trimap)
-
-        return image_tensor, trimap_tensor
-
-
-    def split_dataset(self, train_split, val_split, test_split, batch_size):
-        """
-        Reads in Oxford IIIT-pet images and splits in training, validation, test data loaders
-        """
-        # Load the dataset using ImageFolder
-        # Calculate the sizes for train, validation, and test sets
-        num_samples = len(self)
-        num_train = int(train_split * num_samples)
-        num_val = int(val_split * num_samples)
-        num_test = num_samples - num_train - num_val
-
-        # Shuffle indices and split into training, validation, and test sets
-        indices = torch.randperm(num_samples)
-        train_indices = indices[:num_train]
-        val_indices = indices[num_train:num_train + num_val]
-        test_indices = indices[num_train + num_val:]
-
-        # Define samplers for each split
-        train_sampler = torch.utils.data.SubsetRandomSampler(train_indices)
-        val_sampler = torch.utils.data.SubsetRandomSampler(val_indices)
-        test_sampler = torch.utils.data.SubsetRandomSampler(test_indices)
-
-        # Create data loaders for each set
-        train_loader = DataLoader(self, batch_size=batch_size, sampler=train_sampler, drop_last=True)
-        val_loader = DataLoader(self, batch_size=4, sampler=val_sampler)
-        test_loader = DataLoader(self, batch_size=4, sampler=test_sampler)
-
-        return train_loader, val_loader, test_loader
-
-
-def view_training(model, test_loader, display, device):
-    for batch in test_loader:
-        images, labels = batch
-        images = images.to(device)
-        outputs = model(images)
-
-        # images = (images.cpu().detach().numpy()*255).astype(np.uint8)
-        # labels = (labels.cpu().detach().numpy()*255).astype(np.uint8)
-        output_labels = one_hot_to_tensor(outputs.cpu().detach())
-        fig, axes = plt.subplots(3, 4, figsize=(12, 8))
-        for i in range(4):
-            ax = axes[0, i]
-            ax.axis('off')
-            ax.imshow(images[i].cpu().permute(1, 2, 0))
-            ax = axes[1, i]
-            ax.axis('off')
-            ax.imshow(labels[i][0])
-            ax = axes[2, i]
-            ax.axis('off')
-            ax.imshow(output_labels[i].unsqueeze(0).permute(1, 2, 0))
-        plt.tight_layout()
-        # TODO: move this logic
-        #  if check_semantic_segmentation:
-        plt.show()
-        date_str = time.strftime("_%H.%M_%d-%m-%Y", time.localtime(time.time()))
-        plt.savefig(os.path.join(fine_tuning_dir, 'labels' + date_str + '.png'))
-        break
+            ax0 = axes[0]
+            ax1 = axes[1]
+            ax2 = axes[2]
+            ax3 = axes[3]
+        ax0.axis('off')
+        ax0.set_title('Image')
+        ax0.imshow(images[i].permute(1,2,0))
+        ax1.axis('off')
+        ax1.set_title('Label')
+        ax1.imshow(labels[i].permute(1,2,0))
+        ax2.axis('off')
+        ax2.set_title('Output (prob)')
+        ax2.imshow(outputs[i].permute(1,2,0))
+        ax3.axis('off')
+        ax3.set_title('Output (argmax)')
+        ax3.imshow(output_labels[i])
+    plt.tight_layout()
+    plt.show()
+    date_str = time.strftime("_%H.%M_%d-%m-%Y", time.localtime(time.time()))
+    plt.savefig('labels'+date_str+'.png')
+    plt.close()
 
 
 def overlap(model, loader, device):
@@ -240,10 +171,39 @@ def overlap(model, loader, device):
     outputs = model(images.to(device))
     outputs = outputs.cpu().detach()
     images, labels = images.cpu(), labels.cpu()
-    # TODO: this was
-    # output_labels = torch.argmax(outputs.cpu().detach(), dim=1) ## But this breaks
-    output_labels = torch.argmax(outputs.cpu().detach(), dim=0)
+    output_labels = torch.argmax(outputs.cpu().detach(), dim=1)
     overlap = labels == output_labels
     overlap_fraction = overlap.float().mean().item()
 
     return overlap_fraction
+
+
+class OxfordPetDataset(Dataset):
+    """
+    Takes
+        links to jpg images and trimap pngs
+    Returns
+        image tensors and classification map
+    """
+    def __init__(self, original_dataset, params):
+        self.original_dataset = original_dataset
+        self.params = params
+
+    def __len__(self):
+        return len(self.original_dataset)
+
+    def __getitem__(self, idx):
+        if torch.is_tensor(idx):
+            idx = idx.tolist()
+
+        image, target = self.original_dataset[idx]
+
+        target_transform = transforms.Compose([
+            transforms.Resize((self.params['image_size'], self.params['image_size'])),  # Resize the input PIL Image to given size.
+            transforms.ToTensor(),                                            # Convert a PIL Image to PyTorch tensor.
+            transforms.Lambda(lambda x: ((x*255)-1).long())])                 # Convert back to class values 0,1,2
+        target = target_transform(target)
+
+        return image, target
+
+

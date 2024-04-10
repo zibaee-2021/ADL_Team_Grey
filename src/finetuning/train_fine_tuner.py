@@ -1,8 +1,8 @@
 # External packages
 from datetime import datetime
-
 import torch
 import torch.nn as nn
+from torchvision import datasets, transforms
 import time
 import random
 import numpy as np
@@ -55,35 +55,25 @@ params = {
     # Image
     "image_size": 224,  # number of pixels square
     "num_channels": 3,  #  RGB image -> 3 channels
-    "patch_size": 14,  # must be divisor of image_size
+    # "patch_size": 14,  # must be divisor of image_size
     'num_classes': 3,
 
     # Network
     'network': "CNN",  # CNN, ViT, Linear
-    'num_features': 256,  # 768
+    'num_features': 768,  # 768
     'hidden_dim': 2048,
     "vit_num_layers": 4,  # 12ViT parameter
     "vit_num_heads": 8,  # 8 ViT parameter
-    "vit_mlp_dim": 2048,  # 1024 ViT parameter
-
-
-    # vision transformer decoder
-    "decoder_hidden_dim": 1024,    # 1024 ViT decoder first hidden layer dimension
-    "decoder_CNN_channels": 16,    #
-    "decoder_scale_factor": 4,     #
-
-    # segmentation model
-    "segmenter_hidden_dim": 128,
-    "segmenter_classes": 3,  # image, background, boundary
+    "vit_mlp_dim": 2048,  # 1024 ViT parameter#
 
     # hyper-parameters
-    "ft_batch_size": 8,
+    "ft_batch_size": 32,
     "learning_rate": 0.001,
     "momentum":0.9,
 
     # Training
     'optimizer': "Adam",  # Adam, AdamW, SGD
-    'ft_num_epochs': 1,
+    'ft_num_epochs': 5,
     'class_weights': [1.0, 0.5, 1.5],  #  pet, background, boundary
 
 }
@@ -112,7 +102,7 @@ oxford_classes = (
 )
 
 ft_num_classes = len(oxford_classes)
-report_every = 100
+report_every = 25
 
 # test image
 test_image_path = os.path.join(oxford_3_dir, "images/Abyssinian_1.jpg")
@@ -148,12 +138,28 @@ if __name__ == '__main__':
 
     segment_model = SegmentModel(encoder, decoder).to(device)
 
-    # OLD: (nmicer?) load data
-    oxford_dataset = OxfordPetDataset(image_dir=os.path.join(oxford_path, "images"),
-                                      label_dir=os.path.join(oxford_path, "annotations/trimaps"),
-                                      params=params)
-    train_loader, val_loader, test_loader = oxford_dataset.split_dataset(
-        train_size, val_size, test_size, batch_size=params["ft_batch_size"])
+    transform = transforms.Compose([transforms.Resize((params['image_size'], params['image_size'])),
+                                    transforms.ToTensor(),
+                                    transforms.Normalize(mean=[0.45, 0.5, 0.55], std=[0.2, 0.2, 0.2])
+                                    #  normalising helps convergence
+                                    ])  # Define data transformations: resize and convert to PyTorch tensors
+    train_dataset = datasets.OxfordIIITPet(root=os.path.join(oxford_3_dir,"Train"), split='trainval',
+                                           download=True, target_types='segmentation', transform=transform)
+    # train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=ft_batch_size, shuffle=True)
+    test_dataset = datasets.OxfordIIITPet(root=os.path.join(oxford_3_dir,"Test"), split='test',
+                                          download=True, target_types='segmentation', transform=transform)
+    # test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=ft_batch_size, shuffle=True)
+
+    # # Initialize dataset & dataLoader
+    dataset = OxfordPetDataset(train_dataset, params)
+    train_loader = torch.utils.data.DataLoader(dataset, batch_size=ft_batch_size, shuffle=True)
+    datset_test = OxfordPetDataset(test_dataset, params)
+    test_loader = torch.utils.data.DataLoader(datset_test, batch_size=ft_batch_size, shuffle=True)
+
+    #TODO: remove
+    # for k in sorted(params):
+    #     print(k,params[k])
+    # assert False
 
     print("View images, labels and as yet unlearned model output before starting")
     view_training(segment_model, train_loader, True, device)
@@ -175,6 +181,18 @@ if __name__ == '__main__':
         # Define loss function and optimizer
         ft_criterion = nn.CrossEntropyLoss()
         optimizer = get_optimizer(segment_model, params)
+        #####################################
+
+        # test everything is working
+        print("View images, labels and as yet unlearned model output before starting")
+        view_training(segment_model, train_loader, True, device)
+        print(f"Starting overlap: {overlap(segment_model, train_loader, device):.3f}")
+
+        ## loss and optimiser
+        class_weights = torch.tensor(params['class_weights']).to(device)
+        criterion = torch.nn.CrossEntropyLoss(weight=class_weights).to(
+            device)  #  use of weights to correct for disparity in foreground, background, boundary
+        optimizer = get_optimizer(segment_model, params)
 
         losses = []
         for epoch in range(ft_num_epochs):
@@ -183,10 +201,13 @@ if __name__ == '__main__':
 
             for its, (images, labels) in enumerate(train_loader):
                 images, labels = images.to(device), labels.to(device)
+                labels = labels.squeeze(1)
+
+                optimizer.zero_grad()
 
                 # forward + backward + optimize
                 outputs = segment_model(images)
-                loss = criterion(outputs, labels.squeeze())
+                loss = criterion(outputs, labels)
                 loss.backward()
                 optimizer.step()
 
@@ -202,7 +223,7 @@ if __name__ == '__main__':
             losses.append(running_loss / len(train_loader))
             print(
                 f"Epoch [{epoch + 1}/{ft_num_epochs}] completed in {(epoch_end_time - epoch_start_time):.0f}s, Loss: {running_loss / len(train_loader):.4f}")
-            view_training(segment_model, val_loader, True, device)
+            view_training(segment_model, test_loader, True, device)
         end_time = time.perf_counter()
         print(f"Segmentation training finished after {(end_time - start_time):.0f}s")
 
@@ -255,3 +276,60 @@ if __name__ == '__main__':
             print(f"Sample test set overlap: {overlap(segment_model, test_loader, device):.3f}")
 
     print("Fine-tuning script complete")
+
+"""
+        ## train
+        losses = []
+        for epoch in range(params['ft_num_epochs']):  # loop over the dataset multiple times
+            epoch_start_time = time.time()
+
+            running_loss = 0.0
+            for its, (inputs, labels) in enumerate(train_loader, 0):
+                # get the inputs; data is a list of [inputs, labels]
+                inputs, labels = inputs.to(device), labels.to(device)
+                labels = labels.squeeze(1)
+
+                # zero the parameter gradients
+                optimizer.zero_grad()
+
+                # forward + backward + optimize
+                outputs = segment_model(inputs)
+                loss = criterion(outputs, labels)
+                loss.backward()
+                optimizer.step()
+
+                # print statistics
+                running_loss += loss.detach().cpu().item()
+                if its % report_every == (
+                        report_every - 1):  # print every report_every mini-batches
+                    print('Epoch [%d / %d],  %d image minibatch [%4d / %4d], running loss: %.4f' %
+                          (epoch + 1, params['ft_num_epochs'], params['ft_batch_size'], its + 1, len(train_loader),
+                           running_loss / its))
+            # end its
+            losses.append(running_loss)
+            epoch_end_time = time.time()
+            end_time_str = time.strftime("%H.%M", time.localtime(epoch_end_time))
+            print(
+                f"Epoch [{epoch + 1}/{params['ft_num_epochs']}] completed at {end_time_str} taking {(epoch_end_time - epoch_start_time):.0f}s, Current LR {optimizer.param_groups[0]['lr']:.7f}, Loss: {(running_loss / its):.4f}, Sample pixel overlap: {overlap(segment_model, train_loader, device):.3f}")
+        # end epochs
+
+        if False:#params['save_models']:
+            torch.save(encoder.state_dict(), params['script_dir'] + params['encoder_file'])
+            torch.save(decoder.state_dict(), params['script_dir'] + params['segmentation_decoder_file'])
+        #save_losses(losses, "ft", params)
+        plt.plot(losses)
+        plt.title("Fine-tuner losses")
+        date_str = time.strftime("_%H.%M_%d-%m-%Y", time.localtime(time.time()))
+        #plt.savefig(params['script_dir'] + '/Output/ft_losses' + date_str + '.png')
+        plt.show()
+        plt.close()
+        view_training(segment_model, train_loader, True, device)  # dont understand why this doesnt display
+
+    # display inference on test set
+    testing_dataset = OxfordPetDataset(test_dataset, params)
+    test_loader = torch.utils.data.DataLoader(testing_dataset, batch_size=params['ft_batch_size'], shuffle=True)
+    for its in range(5):
+        view_training(segment_model, test_loader, True, device)
+        print(f"Sample test set overlap: {overlap(segment_model, test_loader, device):.3f}")
+"""
+    #####################################
