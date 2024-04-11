@@ -443,7 +443,7 @@ if __name__ == '__main__':
     device = get_optimal_device()
 
     control_params = {
-        "run_pretrainer": True,
+        "run_pretrainer": False,
         "check_masking": False,
         "check_infilling": False,
         "check_oxford_batch": False,
@@ -474,7 +474,7 @@ if __name__ == '__main__':
     training_params = {
         'optimizer': "Adam",            # Adam, AdamW, SGD
         'pt_num_epochs': 16,
-        'ft_num_epochs': 32,
+        'ft_num_epochs': 5,
         'learning_rate': 0.001,
         'momentum': 0.9,                # not used in Adam
         'report_every': 10,
@@ -490,8 +490,6 @@ if __name__ == '__main__':
     image_params['num_masks'] = num_masks
 
     params={**control_params, ** image_params, **network_params, **training_params}
-
-
 
     ##
     ## Pre trainer
