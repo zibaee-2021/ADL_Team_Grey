@@ -56,7 +56,6 @@ params = {
     # Image
     "image_size": 224,  # number of pixels square
     "num_channels": 3,  #  RGB image -> 3 channels
-    # "patch_size": 14,  # must be divisor of image_size
     'num_classes': 3,
 
     # Network
@@ -74,7 +73,7 @@ params = {
 
     # Training
     'optimizer': "Adam",  # Adam, AdamW, SGD
-    'ft_num_epochs': 5,
+    'ft_num_epochs': 8,
     'class_weights': [1.0, 0.5, 1.5],  #  pet, background, boundary
 }
 

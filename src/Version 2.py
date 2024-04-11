@@ -90,10 +90,9 @@ def view_training(model, loader, display):
         ax3.set_title('Output (argmax)')
         ax3.imshow(output_labels[i])
     plt.tight_layout()
+    plt.show()
     date_str = time.strftime("_%H.%M_%d-%m-%Y", time.localtime(time.time()))
     plt.savefig(params['script_dir']+'/Output/labels'+date_str+'.png')
-    plt.show(block=False)
-    time.sleep(0.5)
     plt.close()
 
 
@@ -101,80 +100,12 @@ def overlap(model, loader):
     images, labels = next(iter(loader))
     outputs = model(images.to(device))
     outputs = outputs.cpu().detach()
-    outputs_prob = nn.functional.softmax(outputs, dim=1)
     images, labels = images.cpu(), labels.cpu()
-    num_classes = outputs.size(1)
     output_labels = torch.argmax(outputs.cpu().detach(), dim=1)
     overlap = labels == output_labels
     overlap_fraction = overlap.float().mean().item()
 
-    IoU_sum = 0.0
-    IoU_prob_sum = 0.0
-    for cls in range(num_classes):
-        intersection = torch.logical_and(output_labels == cls, labels == cls)
-        intersection_prob = outputs_prob[:,cls,:,:] * (labels == cls).float()
-        union = torch.logical_or(output_labels == cls, labels == cls)
-        union_prob = outputs_prob[:,cls,:,:] + (labels == cls).float() - intersection_prob
-        intersection_over_union = torch.sum(intersection).float() / torch.sum(union).float()
-        intersection_over_union_prob = torch.sum(intersection_prob)  / torch.sum(union_prob)
-        IoU_sum += intersection_over_union
-        IoU_prob_sum += intersection_over_union_prob
-    IoU_mean = IoU_sum / num_classes
-    IoU_prob_mean = IoU_prob_sum / num_classes 
-
-    return overlap_fraction, IoU_mean.item(), IoU_prob_mean.item()
-
-
-def ssim1(img1, img2, C1=0.01**2, C2=0.03**2):
-    mu1 = nn.functional.avg_pool2d(img1, kernel_size=3, stride=1, padding=1)
-    mu2 = nn.functional.avg_pool2d(img2, kernel_size=3, stride=1, padding=1)
-    mu1_sq = mu1.pow(2)
-    mu2_sq = mu2.pow(2)
-    mu1_mu2 = mu1 * mu2
-
-    sigma1_sq = nn.functional.avg_pool2d(img1 * img1, kernel_size=3, stride=1, padding=1) - mu1_sq
-    sigma2_sq = nn.functional.avg_pool2d(img2 * img2, kernel_size=3, stride=1, padding=1) - mu2_sq
-    sigma12 = nn.functional.avg_pool2d(img1 * img2, kernel_size=3, stride=1, padding=1) - mu1_mu2
-
-    ssim_map = ((2 * mu1_mu2 + C1) * (2 * sigma12 + C2)) / ((mu1_sq + mu2_sq + C1) * (sigma1_sq + sigma2_sq + C2))
-
-    return ssim_map.mean().item()
-
-
-def ssim2(img1, img2, window_size=11, C1=0.01**2, C2=0.03**2):
-    kernel_size = window_size
-    sigma = 1.5
-    gaussian = torch.exp(-torch.arange(-kernel_size // 2 + 1., kernel_size // 2 + 1.) ** 2 / (2 * sigma ** 2))
-    gaussian = gaussian / gaussian.sum()
-
-    # Apply Gaussian smoothing to each color channel
-    gaussian_kernel = gaussian.view(1, 1, -1, 1).repeat(1, img1.size(1), 1, 1)
-    mu1 = nn.functional.conv2d(img1, gaussian_kernel, padding=kernel_size // 2)
-    mu2 = nn.functional.conv2d(img2, gaussian_kernel, padding=kernel_size // 2)
-
-    mu1_sq = mu1 ** 2
-    mu2_sq = mu2 ** 2
-    mu1_mu2 = mu1 * mu2
-
-    sigma1_sq = nn.functional.conv2d(img1 * img1, gaussian_kernel, padding=kernel_size // 2) - mu1_sq
-    sigma2_sq = nn.functional.conv2d(img2 * img2, gaussian_kernel, padding=kernel_size // 2) - mu2_sq
-    sigma12 = nn.functional.conv2d(img1 * img2, gaussian_kernel, padding=kernel_size // 2) - mu1_mu2
-
-    ssim_map = ((2 * mu1_mu2 + C1) * (2 * sigma12 + C2)) / ((mu1_sq + mu2_sq + C1) * (sigma1_sq + sigma2_sq + C2))
-
-    return ssim_map.mean().item()
-
-
-def get_ssim(model, loader):
-    images, _ = next(iter(loader))
-    outputs = model(images.to(device))
-    outputs = outputs.cpu().detach()
-    output_images = torch.sigmoid(outputs)
-
-    mean_ssim1 = ssim1(images, output_images)
-    mean_ssim2 = ssim2(images, output_images)
-
-    return mean_ssim1, mean_ssim2
+    return overlap_fraction
 
 
 def mask_tester(patch_masker, model, loader, display):
@@ -211,20 +142,16 @@ def mask_tester(patch_masker, model, loader, display):
         ax0.axis('off')
         ax0.set_title('Image')
         ax0.imshow(images[i].permute(1,2,0))
-        ax1.axis('off')
         ax1.set_title('Masked Image')
-        ax1.imshow(masked_images[i].permute(1,2,0))
-        ax2.axis('off')
+        ax1.imshow(masked_images[i].permute(1,2,0)) 
         ax2.set_title('Infill')
-        ax2.imshow(infill_images[i].cpu().permute(1,2,0))
-        ax3.axis('off')
+        ax2.imshow(infill_images[i].cpu().permute(1,2,0)) 
         ax3.set_title('Inpainted')
         ax3.imshow(inpainted_images[i].cpu().permute(1,2,0)) 
     plt.tight_layout()
+    plt.show()
     date_str = time.strftime("_%H.%M_%d-%m-%Y", time.localtime(time.time()))
     plt.savefig(params['script_dir']+'/Output/masks'+date_str+'.png')
-    plt.show(block=False)
-    time.sleep(0.5)
     plt.close()
 
 
@@ -244,40 +171,14 @@ def initialise_weights(model):
             nn.init.constant_(param, 0.0)  # Initialize biases to zero
 
 
-def save_losses(results, stage, params):
+def save_losses(losses, stage, params):
     date_str = time.strftime("_%H.%M_%d-%m-%Y", time.localtime(time.time()))
     with open(params['script_dir']+"/Output/"+stage+"_losses"+date_str+".txt", 'w') as f:
         for key, value in params.items():
             f.write(f"{key}: {value}\n")
         f.write("\n")
-        if isinstance(results[0], list):
-            num_results = len(results)
-            num_entries = len(results[0])
-        else:
-            num_results = 1
-            num_entries = len(results)
-        for i in range(num_entries):
-            f.write(f'{i+1}')
-            if num_results > 1:
-                for j in range(num_results):
-                    f.write(f'  {results[j][i]}')
-                f.write(f'\n')
-            else:
-                f.write(f' . {results[i]}\n')
-
-
-def construct_file_name(params):
-
-    string = params['network'] \
-        + "nf"+str(params['num_features']) \
-        + "hd"+str(params['hidden_dim']) \
-        + "nl"+str(params['vit_num_layers']) \
-        + "nh"+str(params['vit_num_heads']) \
-        + "md"+str(params['vit_mlp_dim']) \
-        + "ps"+str(params['patch_size']) \
-        + "mr"+str(params['mask_ratio'])
-    
-    return string
+        for i, loss in enumerate(losses):
+            f.write(f'{i+1}  {loss}\n')
 
 
 class CNNEncoder(nn.Module):
@@ -542,17 +443,17 @@ if __name__ == '__main__':
     device = get_optimal_device()
 
     control_params = {
-        "run_pretrainer": True,
+        "run_pretrainer": False,
         "check_masking": False,
         "check_infilling": False,
         "check_oxford_batch": False,
         "run_finetuner": True,
-        "check_semantic_segmentation": False,
-        "save_models": True,
+        "check_semantic_segmentation": True,
+        "save_models": False,
         "load_models": False,
-        "encoder_file": "encoder.pth",
-        "decoder_file": "masked_autoencoder_decoder.pth",
-        "segmentation_decoder_file": "segmentation_decoder.pth"
+        "encoder_file": "/Models/encoder.pth",
+        "decoder_file": "/Models/masked_autoencoder_decoder.pth",
+        "segmentation_decoder_file": "/Models/segmentation_decoder.pth"
     }
     image_params = {
         "image_size": 224,              # number of pixels square
@@ -560,20 +461,20 @@ if __name__ == '__main__':
         "patch_size": 14,               # must be divisor of image_size
         'batch_size': 32,
         'num_classes': 3,
-        'mask_ratio': 0.75,
+        'mask_ratio': 0.25,
     }
     network_params = {
         'network': "CNN",               # CNN, ViT, Linear
         'num_features': 768,            # 768
-        'hidden_dim': 2048,             # 
-        "vit_num_layers": 8,            # 12ViT parameter
-        "vit_num_heads": 12,            # 8 ViT parameter
+        'hidden_dim': 2048,
+        "vit_num_layers": 4,            # 12ViT parameter
+        "vit_num_heads": 8,             # 8 ViT parameter
         "vit_mlp_dim": 2048,            # 1024 ViT parameter
     }
     training_params = {
         'optimizer': "Adam",            # Adam, AdamW, SGD
-        'pt_num_epochs': 32,
-        'ft_num_epochs': 32,
+        'pt_num_epochs': 16,
+        'ft_num_epochs': 5,
         'learning_rate': 0.001,
         'momentum': 0.9,                # not used in Adam
         'report_every': 10,
@@ -588,28 +489,7 @@ if __name__ == '__main__':
     image_params['num_patches'] = num_patches
     image_params['num_masks'] = num_masks
 
-    params={**control_params, **image_params, **network_params, **training_params}
-
-
-    file_name = construct_file_name(params)
-
-
-    # Instantiate the encoder & decoder for color images, patchmaker and model (encoder/decoder)
-    encoder , pt_decoder = get_network(params, params['num_channels'])
-    if params['load_models'] and os.path.isfile(params['script_dir']+"/Models/"+file_name+params['encoder_file']):
-        encoder.load_state_dict(torch.load(params['script_dir']+"/Models/"+file_name+params['encoder_file']), strict=False)
-    else:
-        initialise_weights(encoder)
-    if params['load_models'] and os.path.isfile(params['script_dir']+"/Models/"+file_name+params['decoder_file']):
-        pt_decoder.load_state_dict(torch.load(params['script_dir']+"/Models/"+file_name+params['decoder_file']), strict=False)
-    else:
-        initialise_weights(pt_decoder)
-    vae_model = SegmentModel(encoder, pt_decoder).to(device) # vae pre-trainer and supervised fine-tuner share encoder
-    patch_masker = PatchMasker(params['patch_size'], params['num_masks'])
-
-
-
-
+    params={**control_params, ** image_params, **network_params, **training_params}
 
     ##
     ## Pre trainer
@@ -624,6 +504,20 @@ if __name__ == '__main__':
         pt_dataloader = DataLoader(pt_dataset, batch_size = params['batch_size'], shuffle = True, drop_last = True) # drop last batch so that all batches are complete
 
 
+        # Instantiate the encoder & decoder for color images, patchmaker and model (encoder/decoder)
+        encoder , pt_decoder = get_network(params, params['num_channels'])
+        if params['load_models'] and os.path.isfile(params['script_dir']+params['encoder_file']):
+            encoder.load_state_dict(torch.load(params['script_dir']+params['encoder_file']), strict=False)
+        else:
+            initialise_weights(encoder)
+        if params['load_models'] and os.path.isfile(params['script_dir']+params['decoder_file']):
+            pt_decoder.load_state_dict(torch.load(params['script_dir']+params['decoder_file']), strict=False)
+        else:
+            initialise_weights(pt_decoder)
+        vae_model = SegmentModel(encoder, pt_decoder).to(device) # vae pre-trainer and supervised fine-tuner share encoder
+        patch_masker = PatchMasker(params['patch_size'], params['num_masks'])
+
+
         # test everything is working
         print("View images, masked imaged and predicted images before starting")
         mask_tester(patch_masker, vae_model, pt_dataloader, True)
@@ -635,8 +529,6 @@ if __name__ == '__main__':
 
         # Main training loop
         losses=[]
-        ssims1=[]
-        ssims2=[]
         for epoch in range(params['pt_num_epochs']):
             epoch_start_time=time.time()
             running_loss = 0.0
@@ -661,60 +553,24 @@ if __name__ == '__main__':
                     print('Epoch [%d / %d],  %d image minibatch [%4d / %4d], running loss: %.4f' % (epoch + 1, params['pt_num_epochs'], params['batch_size'], its + 1, len(pt_dataloader), running_loss / its))
             #scheduler.step()
             epoch_end_time=time.time()
-            mean_ssim1, mean_ssim2 = get_ssim(vae_model, pt_dataloader)
-            print(f"Epoch [{epoch + 1}/{params['pt_num_epochs']}] completed in {(epoch_end_time-epoch_start_time):.0f}s, Loss: {(running_loss / its):.4f}, Mean SSIM: {mean_ssim1:.3f}, {mean_ssim2:.3f}")
+            print(f"Epoch [{epoch + 1}/{params['pt_num_epochs']}] completed in {(epoch_end_time-epoch_start_time):.0f}s, Loss: {(running_loss / its):.4f}")
             losses.append(running_loss)
-            ssims1.append(mean_ssim1)
-            ssims2.append(mean_ssim2)
         print(f"Masked VAE training finished after {(epoch_end_time-start_time):.0f}s")
-        results = [losses, ssims1, ssims2]
 
 
         # Save the trained model & losses
         if params['save_models']:
-            torch.save(encoder.state_dict(), params['script_dir']+"/Models/"+file_name+params['encoder_file'])
-            torch.save(pt_decoder.state_dict(), params['script_dir']+"/Models/"+file_name+params['decoder_file'])
-        save_losses(results, "pt", params)
+            torch.save(encoder.state_dict(), params['script_dir']+params['encoder_file'])
+            torch.save(pt_decoder.state_dict(), params['script_dir']+params['decoder_file'])
+        save_losses(losses, "pt", params)
         plt.plot(losses)
         plt.title("Pre-trainer losses")
         date_str = time.strftime("_%H.%M_%d-%m-%Y", time.localtime(time.time()))
         plt.savefig(params['script_dir']+'/Output/pt_losses'+date_str+'.png')
         plt.show()
-        time.sleep(0.5)
         plt.close()
         mask_tester(patch_masker, vae_model, pt_dataloader, True)
 
-
-
-
-    # Download, transform and load the dataset
-    transform = transforms.Compose([transforms.Resize((params['image_size'], params['image_size'])),
-                                        transforms.ToTensor(),
-                                        transforms.Normalize(mean=[0.45, 0.5, 0.55], std=[0.2, 0.2, 0.2]) # normalising helps convergence
-                                        ]) # Define data transformations: resize and convert to PyTorch tensors
-    train_dataset = datasets.OxfordIIITPet(root=params['script_dir']+"/Data/OxfordIIITPet/Train", split='trainval', download=True, target_types='segmentation', transform=transform)
-    train_loader = torch.utils.data.DataLoader(train_dataset, batch_size = params['batch_size'], shuffle=True)
-    test_dataset = datasets.OxfordIIITPet(root=params['script_dir']+"/Data/OxfordIIITPet/Test", split='test', download=True, target_types='segmentation', transform=transform)
-    test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=params['batch_size'], shuffle=True)
-
-
-    # initialize model: encoder and decoder
-    try:
-        encoder # if already exists (from pre-trainer) don't re-initialise
-    except NameError:
-        encoder , decoder = get_network(params, params['num_classes'])
-        if params['load_models'] and os.path.isfile(params['script_dir']+"/Models/"+file_name+params['encoder_file']):
-            encoder.load_state_dict(torch.load(params['script_dir']+"/Models/"+file_name+params['encoder_file']), strict=False)
-        else:
-            initialise_weights(encoder)
-    else:
-        print("encoder exists")
-        _ , decoder = get_network(params, params['num_classes']) # even thought networks are the same, image decoder and image classifier are different instances
-    if params['load_models'] and os.path.isfile(params['script_dir']+"/Models/"+file_name+params['segmentation_decoder_file']):
-        decoder.load_state_dict(torch.load(params['script_dir']+"/Models/"+file_name+params['segmentation_decoder_file']), strict=False)
-    else:
-        initialise_weights(decoder)
-    segment_model = SegmentModel(encoder, decoder).to(device)
 
 
 
@@ -726,6 +582,36 @@ if __name__ == '__main__':
         print("In fine-tuning")
         start_time=time.time()
 
+        # Download, transform and load the dataset
+        transform = transforms.Compose([transforms.Resize((params['image_size'], params['image_size'])),
+                                        transforms.ToTensor(),
+                                        transforms.Normalize(mean=[0.45, 0.5, 0.55], std=[0.2, 0.2, 0.2]) # normalising helps convergence
+                                        ]) # Define data transformations: resize and convert to PyTorch tensors
+        train_dataset = datasets.OxfordIIITPet(root=params['script_dir']+"/Data/OxfordIIITPet/Train", split='trainval', download=True, target_types='segmentation', transform=transform)
+        train_loader = torch.utils.data.DataLoader(train_dataset, batch_size = params['batch_size'], shuffle=True)
+        test_dataset = datasets.OxfordIIITPet(root=params['script_dir']+"/Data/OxfordIIITPet/Test", split='test', download=True, target_types='segmentation', transform=transform)
+        test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=params['batch_size'], shuffle=True)
+
+
+        # initialize model: encoder and decoder
+        try:
+            encoder # if already exists (from pre-trainer) don't re-initialise
+        except NameError:
+            encoder , decoder = get_network(params, params['num_classes'])
+            if params['load_models'] and os.path.isfile(params['script_dir']+params['encoder_file']):
+                encoder.load_state_dict(torch.load(params['script_dir']+params['encoder_file']), strict=False)
+            else:
+                initialise_weights(encoder)
+        else:
+            print("encoder exists")
+            _ , decoder = get_network(params, params['num_classes']) # even thought networks are the same, image decoder and image classifier are different instances
+        if params['load_models'] and os.path.isfile(params['script_dir']+params['segmentation_decoder_file']):
+            decoder.load_state_dict(torch.load(params['script_dir']+params['segmentation_decoder_file']), strict=False)
+        else:
+            initialise_weights(decoder)
+        segment_model = SegmentModel(encoder, decoder).to(device)
+
+
 
         # Initialize dataset & dataLoader
         dataset = OxfordPetDataset(train_dataset, params)
@@ -735,8 +621,7 @@ if __name__ == '__main__':
         # test everything is working
         print("View images, labels and as yet unlearned model output before starting")
         view_training(segment_model, training_loader, True)
-        ol, IoU, IoU_p = overlap(segment_model, training_loader)
-        print(f"Starting overlap, intersection over union (a-m, prob): {ol:.3f}, {IoU:.3f}, {IoU_p:.3f}")
+        print(f"Starting overlap: {overlap(segment_model, training_loader):.3f}")
 
         ## loss and optimiser
         class_weights = torch.tensor(params['class_weights']).to(device)
@@ -746,9 +631,6 @@ if __name__ == '__main__':
 
         ## train
         losses=[]
-        ols=[]
-        ious=[]
-        iousp=[]
         for epoch in range(params['ft_num_epochs']):  # loop over the dataset multiple times
             epoch_start_time=time.time()
 
@@ -776,24 +658,18 @@ if __name__ == '__main__':
             losses.append(running_loss)
             epoch_end_time=time.time()
             end_time_str = time.strftime("%H.%M", time.localtime(epoch_end_time))
-            ol, IoU, IoU_p = overlap(segment_model, training_loader)
-            ols.append(ol)
-            ious.append(IoU)
-            iousp.append(IoU)
-            print(f"Epoch [{epoch + 1}/{params['ft_num_epochs']}] completed at {end_time_str} taking {(epoch_end_time-epoch_start_time):.0f}s, Current LR {optimizer.param_groups[0]['lr']:.7f}, Loss: {(running_loss / its):.4f}, Sample pixel overlap, intersection over union (a-m, p): {ol:.3f}, {IoU:.3f}, {IoU_p:.3f}")
+            print(f"Epoch [{epoch + 1}/{params['ft_num_epochs']}] completed at {end_time_str} taking {(epoch_end_time-epoch_start_time):.0f}s, Current LR {optimizer.param_groups[0]['lr']:.7f}, Loss: {(running_loss / its):.4f}, Sample pixel overlap: {overlap(segment_model, training_loader):.3f}")
         #end epochs
-        results=[losses, ols, ious, iousp]
 
         if params['save_models']:
-            torch.save(encoder.state_dict(), params['script_dir']+"/Models/"+file_name+params['encoder_file'])
-            torch.save(decoder.state_dict(), params['script_dir']+"/Models/"+file_name+params['segmentation_decoder_file'])
-        save_losses(results, "ft", params)
+            torch.save(encoder.state_dict(), params['script_dir']+params['encoder_file'])
+            torch.save(decoder.state_dict(), params['script_dir']+params['segmentation_decoder_file'])
+        save_losses(losses, "ft", params)
         plt.plot(losses)
         plt.title("Fine-tuner losses")
         date_str = time.strftime("_%H.%M_%d-%m-%Y", time.localtime(time.time()))
         plt.savefig(params['script_dir']+'/Output/ft_losses'+date_str+'.png')
         plt.show()
-        time.sleep(0.5)
         plt.close()
         view_training(segment_model, training_loader, True) # dont understand why this doesnt display
 
@@ -802,14 +678,8 @@ if __name__ == '__main__':
     testing_dataset = OxfordPetDataset(test_dataset, params)
     test_loader = torch.utils.data.DataLoader(testing_dataset, batch_size=params['batch_size'], shuffle=True)
     for its in range(5):
-        mask_tester(patch_masker, vae_model, test_loader, True)
-        mean_ssim1, mean_ssim2 = get_ssim(vae_model, test_loader)
-        print(f"Mean structural similarity index between original and vae images: {mean_ssim1:.3f}, {mean_ssim2:.3f}")
-        time.sleep(0.5)
         view_training(segment_model, test_loader, True)
-        time.sleep(0.5)
-        ol, IoU, IoU_p = overlap(segment_model, test_loader)
-        print(f"Sample test set overlap, intersection over union (a-m, prob): {ol:.3f}, {IoU:.3f}, , {IoU_p:.3f}")
+        print(f"Sample test set overlap: {overlap(segment_model, test_loader):.3f}")
 
 
     print('Finished')
