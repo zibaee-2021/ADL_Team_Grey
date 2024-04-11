@@ -73,7 +73,7 @@ params = {
 
     # Training
     'optimizer': "Adam",  # Adam, AdamW, SGD
-    'ft_num_epochs': 2,
+    'ft_num_epochs': 1,
     'class_weights': [1.0, 0.5, 1.5],  #  pet, background, boundary
 }
 
@@ -204,7 +204,7 @@ if __name__ == '__main__':
             losses.append((running_train_loss / len(train_loader), running_test_loss / len(test_loader)))
             print(
                 f"Epoch [{epoch + 1}/{ft_num_epochs}] completed in {(epoch_end_time - epoch_start_time):.0f}s, train Loss: {running_train_loss / len(train_loader):.4f} "
-                f"train Loss: {running_test_loss / len(test_loader):.4f}")
+                f"Test Loss: {running_test_loss / len(test_loader):.4f}")
 
             view_training(segment_model, test_loader, True, device, plot_and_image_file_title=f"During Training (epoch {epoch + 1} of {ft_num_epochs}) on Test")
 
@@ -237,7 +237,8 @@ if __name__ == '__main__':
             f.write(f"================ Paramaters ================\n")
             for key, value in params.items():
                 f.write(f"{key} = {value}\n")
-            f.write(f"Epoch |   Train Loss   |   Test Loss  \n")
+            f.write(f"================== Results =================\n")
+            f.write(f"Epoch     |     Train Loss     |     Test Loss    \n")
             for i, (train_loss, test_loss) in enumerate(losses):
                 f.write(f'Epoch: {i+1}, train loss = {train_loss:.5f}, test loss {test_loss:.5f}\n')
 
