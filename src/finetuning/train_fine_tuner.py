@@ -305,7 +305,7 @@ if __name__ == '__main__':
             print(f"Saved {decoder_path}")
 
         date_str = time.strftime("_%H.%M_%d-%m-%Y", time.localtime(time.time()))
-        with open(os.path.join(fine_tuning_dir, "ft_losses" + date_str + ".txt"), 'w') as f:
+        with open(os.path.join(ft_output_dir, "ft_losses" + date_str + ".txt"), 'w') as f:
             f.write(f"================ Paramaters ================\n")
             for key, value in params.items():
                 f.write(f"{key} = {value}\n")
@@ -327,7 +327,7 @@ if __name__ == '__main__':
             plt.xlabel("Epoch")
             plt.legend()
             plt.tight_layout()
-            plt.savefig(os.path.join(fine_tuning_dir, 'ft_losses' + date_str + '.png'))
+            plt.savefig(os.path.join(ft_output_dir, 'ft_losses' + date_str + '.png'))
             # plt.show()
             plt.close()
 
