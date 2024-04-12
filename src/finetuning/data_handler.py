@@ -131,7 +131,7 @@ def view_training(model, loader: DataLoader, display:bool, device: torch.device,
     model.eval()
     with torch.no_grad():
         outputs = model(images.to(device))
-        outputs = outputs.cpu().detach()
+        outputs = torch.sigmoid(outputs.cpu().detach())
         images, labels = images.cpu(), labels.cpu()
         output_labels = torch.argmax(outputs.cpu().detach(), dim=1)
 
