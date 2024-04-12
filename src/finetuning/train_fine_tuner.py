@@ -1,5 +1,6 @@
 # GROUP19_COMP0197
 # External packages
+import sys
 import time
 from datetime import datetime
 import random
@@ -23,6 +24,46 @@ from src.shared_network_architectures.networks_pt import (
 )
 from src.utils.IoUMetric import IoULoss
 
+params = {
+    # Image
+    "image_size": 224,  # number of pixels square
+    "num_channels": 3,  # RGB image -> 3 channels
+    'num_classes': 3,
+
+    # Network
+    'network': "CNN",  # CNN, ViT, Linear
+    'num_features': 768,  # 768
+    'hidden_dim': 2048,
+    "vit_num_layers": 4,  # 12ViT parameter
+    "vit_num_heads": 8,  # 8 ViT parameter
+    "vit_mlp_dim": 2048,  # 1024 ViT parameter#
+
+    # hyper-parameters
+    "ft_batch_size": 32,
+    "learning_rate": 0.001,
+    "momentum": 0.9,
+
+    # Training
+    'optimizer': "Adam",  # Adam, AdamW, SGD
+    'ft_num_epochs': 1,
+    'class_weights': [1.0, 0.5, 1.5],  # pet, background, boundary
+}
+encoder, decoder = get_network(params, params['num_classes'])
+
+if len(sys.argv) > 1:
+    BUILD_BASELINE = sys.argv[1] == 'BUILD_BASELINE'
+    if BUILD_BASELINE:
+        print(f'\n\nYOU HAVE SELECTED TO BUILD A BASELINE MODEL, TRAINING ON OXFORD-3 DATASET ONLY')
+        initialise_weights(encoder)
+        initialise_weights(encoder)
+else:
+    print(f'\n\nYOU HAVE SELECTED TO FINE-TUNE A PRE-TRAINED MODEL'
+          f"\n\n ... EXPECTING TO FIND PRETRAINED MODEL AT: \nrepr(../models/ft_encoder_model.pt) and "
+          f"\nrepr(../models/ft_decoder_model.pt).")
+    encoder.load_state_dict(torch.load('../models/ft_encoder_model.pt'), strict=False)
+    decoder.load_state_dict(torch.load('../models/ft_decoder_model.pt'), strict=False)
+
+
 # TODO:
 """
 - add wandb for param checking
@@ -34,7 +75,7 @@ from src.utils.IoUMetric import IoULoss
 ## Control
 ## Training
 check_oxford_batch = True
-run_fine_tuning = True
+run_fine_tuning = True  # TODO: REMOVE THIS FLAG (AND UPDATE BELOW)
 pre_training_model_encoder = None  # set these to the pretrain models you want to use
 pre_training_model_decoder = None
 check_semantic_segmentation = True
@@ -100,6 +141,7 @@ if __name__ == '__main__':
     # initialize model: encoder and decoder
     encoder, decoder = get_network(params, params['num_classes'])
 
+    # ################################################################# TODO: REMOVE FROM THIS LINE
     if pre_training_model_encoder:
         encoder_path = os.path.join(models_dir, pre_training_model_encoder)
         assert os.path.exists(encoder_path), \
@@ -113,7 +155,7 @@ if __name__ == '__main__':
         assert os.path.exists(decoder_path), \
             f"Could not find {pre_training_model_decoder} in {models_dir}"
         decoder.load_state_dict(torch.load(decoder_path), strict=False)
-    else:
+    else: ################################################################# TODO: REMOVE UP TO THIS LINE
         print(f"Initialising decoder randomly")
         initialise_weights(decoder)
 
@@ -149,7 +191,7 @@ if __name__ == '__main__':
     test_loader = torch.utils.data.DataLoader(oxford_3_test_dataloset, batch_size=ft_batch_size, shuffle=True)
 
     ############################
-    if run_fine_tuning:
+    if run_fine_tuning:  # TODO REMOVE THIS IF CONDITION, THERE'S NO ELSE CONDITION.
         print("In fine-tuning")
         start_time = time.perf_counter()
 
