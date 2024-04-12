@@ -121,6 +121,10 @@ if __name__ == '__main__':
     transform = transforms.Compose([transforms.Resize((params['image_size'], params['image_size'])),
                                     transforms.ToTensor(),
                                     transforms.Normalize(mean=[0.45, 0.5, 0.55], std=[0.2, 0.2, 0.2])
+                                    # You can try these calculated mean and std dev:
+                                    # mean is [0.4811, 0.4492, 0.3958]
+                                    # std is [0.2645, 0.2596, 0.2681]
+
                                     #  normalising helps convergence
                                     ])  # Define data transformations: resize and convert to PyTorch tensors
 
