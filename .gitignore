@@ -16,3 +16,4 @@ Oxford-IIIT-Pet
 /src/mvae/wandb/
 wandb/
 __pycache__/
+*.DS_Store
