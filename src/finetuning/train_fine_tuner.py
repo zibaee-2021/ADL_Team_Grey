@@ -75,7 +75,7 @@ params = {
 
     # Training
     'optimizer': "Adam",  # Adam, AdamW, SGD
-    'ft_num_epochs': 8,
+    'ft_num_epochs': 1,
     'class_weights': [1.0, 0.5, 1.5],  #  pet, background, boundary
 }
 
@@ -86,9 +86,6 @@ ft_lr = params["learning_rate"]
 
 # file paths
 oxford_path = oxford_3_dir
-
-# test image
-test_image_path = os.path.join(oxford_3_dir, "images/Abyssinian_1.jpg")
 
 if __name__ == '__main__':
     # Set seeds for random number generator
@@ -171,15 +168,16 @@ if __name__ == '__main__':
 
         # test everything is working
         print("View images, labels and as yet unlearned model output before starting")
-        view_training(segment_model, train_loader, True, device)
+        view_training(segment_model, train_loader, True, device, plot_and_image_file_title="Before Training")
         print(f"Starting overlap: {overlap(segment_model, train_loader, device):.3f}")
 
         # Training loop
         # TODO: add wandb & average loss
         losses = []
         for epoch in range(ft_num_epochs):
+            segment_model.train()
             epoch_start_time = time.perf_counter()
-            running_loss = 0
+            running_train_loss = 0
 
             for its, (images, labels) in enumerate(train_loader):
                 images, labels = images.to(device), labels.to(device)
@@ -193,20 +191,38 @@ if __name__ == '__main__':
                 optimizer.step()
 
                 # print statistics
-                running_loss += loss.detach().cpu().item()
+                running_train_loss += loss.detach().cpu().item()
+                average_loss = running_train_loss / (its + 1)
+
                 if its % report_every == (report_every - 1):  # print every report_every mini-batches
                     curr_time = time.perf_counter() - start_time
                     print(
-                        'Epoch [%d / %d],  %d image minibatch [%4d / %4d], cumulative running loss: %.4f, uptime: %.2f' % (
+                        'Epoch [%d / %d],  %d image minibatch [%4d / %4d], cumulative running loss: %.4f, average loss: %.4f, uptime: %.2f' % (
                             epoch + 1, ft_num_epochs, ft_batch_size, its + 1, len(train_loader),
-                            running_loss / len(train_loader), curr_time))
+                            running_train_loss / len(train_loader), average_loss, curr_time))
 
             epoch_end_time = time.perf_counter()
-            losses.append(running_loss / len(train_loader))
+
+            segment_model.eval()
+            with torch.no_grad():
+                # test set performance
+                running_test_loss = 0.0
+                for _, (images, labels) in enumerate(test_loader):
+                    images, labels = images.to(device), labels.to(device)
+                    labels = labels.squeeze(1)
+
+                    # forward + backward + optimize
+                    outputs = segment_model(images)
+                    loss = criterion(outputs, labels)
+                    running_test_loss += loss.detach().cpu().item()
+
+            losses.append((running_train_loss / len(train_loader), running_test_loss / len(test_loader)))
             print(
-                f"Epoch [{epoch + 1}/{ft_num_epochs}] completed in {(epoch_end_time - epoch_start_time):.0f}s, Loss: {running_loss / len(train_loader):.4f}")
-            #TODO: if we had validation, use validation here rather than test
-            view_training(segment_model, test_loader, True, device)
+                f"Epoch [{epoch + 1}/{ft_num_epochs}] completed in {(epoch_end_time - epoch_start_time):.0f}s, train Loss: {running_train_loss / len(train_loader):.4f} "
+                f"Test Loss: {running_test_loss / len(test_loader):.4f}")
+
+            view_training(segment_model, test_loader, True, device, plot_and_image_file_title=f"During Training (epoch {epoch + 1} of {ft_num_epochs}) on Test")
+
         end_time = time.perf_counter()
         print(f"Segmentation training finished after {(end_time - start_time):.0f}s")
 
@@ -233,24 +249,36 @@ if __name__ == '__main__':
 
         date_str = time.strftime("_%H.%M_%d-%m-%Y", time.localtime(time.time()))
         with open(os.path.join(fine_tuning_dir, "ft_losses" + date_str + ".txt"), 'w') as f:
-            for i, loss in enumerate(losses):
-                f.write(f'{i}  {loss}\n')
+            f.write(f"================ Paramaters ================\n")
+            for key, value in params.items():
+                f.write(f"{key} = {value}\n")
+            f.write(f"================== Results =================\n")
+            f.write(f"Epoch     |     Train Loss     |     Test Loss    \n")
+            for i, (train_loss, test_loss) in enumerate(losses):
+                f.write(f'Epoch: {i+1}, train loss = {train_loss:.5f}, test loss {test_loss:.5f}\n')
 
-        plt.plot(losses)
-        plt.title("Fine-tuner losses")
+        fig, ax = plt.subplots(figsize=(15,5))
+        train_losses = [l[0] for l in losses] # Ugly but works
+        test_losses = [l[1] for l in losses]
+        ax.plot(train_losses, label="Training loss", c="tab:blue")
+        ax.plot(test_losses, label="Test loss", c="tab:orange")
+        fig.suptitle("Fine-tuner losses")
         date_str = time.strftime("_%H.%M_%d-%m-%Y", time.localtime(time.time()))
         # TODO: think about saving
         plt.savefig('ft_losses' + date_str + '.png')
         plt.ylabel("Loss")
         plt.xlabel("Epoch")
+        plt.tight_layout()
         plt.show()
         plt.close()
-        view_training(segment_model, train_loader, True, device)  # dont understand why this doesnt display
+
+        view_training(segment_model, train_loader, True, device, plot_and_image_file_title=f"After Training ({ft_num_epochs} epochs) on Test")
 
     # display inference on test set
     if check_semantic_segmentation:
-        for its in range(5):
-            view_training(segment_model, test_loader, True, device)
+        example_range = 5
+        for its in range(example_range):
+            view_training(segment_model, test_loader, True, device,  plot_and_image_file_title=f"After Training ({ft_num_epochs} epochs) Example {its+1} of {example_range} on Test")
             print(f"Sample test set overlap: {overlap(segment_model, test_loader, device):.3f}")
 
     print("Fine-tuning script complete")

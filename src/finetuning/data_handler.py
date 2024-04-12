@@ -123,18 +123,22 @@ def one_hot_to_tensor(one_hot):
 #
 #         return train_loader, val_loader, test_loader
 
-def view_training(model, loader, display, device):
+def view_training(model, loader: DataLoader, display:bool, device: torch.device, plot_and_image_file_title:str):
+    # Note: plot_and_image_file_title cannot contain things like / , " :
     images, labels = next(iter(loader))
     num_images = min(images.size(0),4)
-
-    outputs = model(images.to(device))
-    outputs = outputs.cpu().detach()
-    images, labels = images.cpu(), labels.cpu()
-    output_labels = torch.argmax(outputs.cpu().detach(), dim=1)
+    model.eval()
+    with torch.no_grad():
+        outputs = model(images.to(device))
+        outputs = outputs.cpu().detach()
+        images, labels = images.cpu(), labels.cpu()
+        output_labels = torch.argmax(outputs.cpu().detach(), dim=1)
 
     if display is False:
         plt.ioff()
+
     fig, axes = plt.subplots(4, num_images, figsize=(3*num_images,8))
+    fig.suptitle(plot_and_image_file_title)
     time.sleep(1)
     for i in range(num_images):
         if num_images>1:
@@ -160,9 +164,9 @@ def view_training(model, loader, display, device):
         ax3.set_title('Output (argmax)')
         ax3.imshow(output_labels[i])
     plt.tight_layout()
+    date_str = time.strftime("%H.%M_%d-%m-%Y_", time.localtime(time.time()))
+    plt.savefig(date_str + plot_and_image_file_title + '.png')
     plt.show()
-    date_str = time.strftime("_%H.%M_%d-%m-%Y", time.localtime(time.time()))
-    plt.savefig('labels'+date_str+'.png')
     plt.close()
 
 
