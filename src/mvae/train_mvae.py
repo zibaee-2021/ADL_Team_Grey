@@ -251,7 +251,7 @@ if __name__ == '__main__':
                 print(f"Saved {decoder_path}")
 
         date_str = time.strftime("_%H.%M_%d-%m-%Y", time.localtime(time.time()))
-        with open(os.path.join(mvae_dir, "pt_losses" + date_str + ".txt"), 'w') as f:
+        with open(os.path.join(pt_output_dir, "pt_losses" + date_str + ".txt"), 'w') as f:
             f.write(f"================ Paramaters ================\n")
             for key, value in params.items():
                 f.write(f"{key} = {value}\n")
