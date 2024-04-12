@@ -24,6 +24,7 @@ from src.mvae.data_handler import (
     PatchMasker
 )
 
+print('\nRUNNING TRAIN_MVAE.PY...')
 
 ## Control
 ## Training
@@ -152,7 +153,7 @@ if __name__ == '__main__':
     ###############
     # mvae training
     vae_model.train()
-    if run_pretraining_and_save:
+    if run_pretraining_and_save:  # TODO TO REMOVE THIS CONDITION AS NO ELSE CONDITION EXISTS
         print("In pre-training")
         start_time = time.perf_counter()
 
