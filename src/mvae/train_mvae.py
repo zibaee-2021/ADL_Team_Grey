@@ -157,8 +157,8 @@ if __name__ == '__main__':
         start_time = time.perf_counter()
 
         loss_func_choice = {'mse': nn.MSELoss(),
-                                'cel': nn.CrossEntropyLoss(),
-                                'iou': IoULoss(preds_are_logits=False).forward}
+                            'cel': nn.CrossEntropyLoss(),
+                            'iou': IoULoss(preds_are_logits=False).forward}
         pt_criterion = loss_func_choice['mse']
         # pt_criterion = nn.MSELoss()  # this was here before
 
@@ -178,10 +178,22 @@ if __name__ == '__main__':
 
                 # Forward pass & compute the loss
                 logits = vae_model(masked_images)
-                outputs = torch.sigmoid(logits)  #  squash to 0-1 pixel values
-                masked_outputs = outputs * masks  # dont calculate loss for masked portion
-                loss = pt_criterion(masked_outputs, masked_images) / (1.0 - params[
-                    'mask_ratio'])  #  normalise to make losses comparable across different mask ratios
+                outputs = logits  # temporary
+
+                # outputs = torch.sigmoid(logits)  # CNNDecoder output is already sigmoid
+
+                #  squash to 0-1 pixel values
+                masked_outputs = outputs * masks
+
+                normalise_label_between_0_and_1 = False
+
+                if normalise_label_between_0_and_1:
+                    min_vals = masked_images.view(masked_images.size(0), -1).min(1, keepdim=True)[0].view(-1, 1, 1, 1)
+                    max_vals = masked_images.view(masked_images.size(0), -1).max(1, keepdim=True)[0].view(-1, 1, 1, 1)
+                    normalized_tensor = (masked_images - min_vals) / (max_vals - min_vals)
+
+                # dont calculate loss for masked portion
+                loss = pt_criterion(masked_outputs, masked_images) / (1.0 - params['mask_ratio'])  #  normalise to make losses comparable across different mask ratios
 
                 # Backward pass and optimization
                 pt_optimizer.zero_grad()
