@@ -109,7 +109,7 @@ class PatchMasker:
         return masked_image, masks
 
 
-    def test(self, model, loader, display, device, dir, plot_and_image_file_title: str):
+    def test(self, model, loader, display, device, directory, plot_and_image_file_title: str):
         """
         Takes
             patch masker object, link to image file
@@ -153,7 +153,7 @@ class PatchMasker:
             ax3.imshow(inpainted_images[i].cpu().permute(1, 2, 0))
 
         date_str = time.strftime("%H.%M_%d-%m-%Y_", time.localtime(time.time()))
-        plt.savefig(os.path.join(dir, date_str + plot_and_image_file_title + '.png'))
+        plt.savefig(os.path.join(directory, date_str + plot_and_image_file_title + '.png'))
         plt.tight_layout()
         # plt.show()
         plt.close()

@@ -124,7 +124,7 @@ def one_hot_to_tensor(one_hot):
 #
 #         return train_loader, val_loader, test_loader
 
-def view_training(model, loader: DataLoader, display:bool, device: torch.device, plot_and_image_file_title:str):
+def view_training(model, loader: DataLoader, display:bool, device: torch.device, directory, plot_and_image_file_title:str):
     # Note: plot_and_image_file_title cannot contain things like / , " :
     images, labels = next(iter(loader))
     num_images = min(images.size(0),4)
@@ -166,7 +166,7 @@ def view_training(model, loader: DataLoader, display:bool, device: torch.device,
         ax3.imshow(output_labels[i])
     plt.tight_layout()
     date_str = time.strftime("%H.%M_%d-%m-%Y_", time.localtime(time.time()))
-    plt.savefig(os.path.join(fine_tuning_dir, date_str + plot_and_image_file_title + '.png'))
+    plt.savefig(os.path.join(directory, date_str + plot_and_image_file_title + '.png'))
     # plt.show()
     plt.close()
 

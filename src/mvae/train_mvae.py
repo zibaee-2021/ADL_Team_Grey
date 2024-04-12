@@ -274,7 +274,7 @@ if __name__ == '__main__':
             plt.ylabel("Loss")
             plt.xlabel("Epoch")
             plt.tight_layout()
-            plt.savefig(os.path.join(outputs_dir, 'pt_losses' + date_str + '.png'))
+            plt.savefig(os.path.join(pt_output_dir, 'pt_losses' + date_str + '.png'))
 
             # plt.show()
             plt.close()

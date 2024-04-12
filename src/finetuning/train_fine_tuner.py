@@ -136,6 +136,19 @@ if __name__ == '__main__':
     np.random.seed(42)
     random.seed(42)
 
+
+    if not os.path.exists(models_dir):
+        os.mkdir(models_dir)
+    if not os.path.exists(outputs_dir):
+        os.mkdir(outputs_dir)
+
+    print("Creating Output Directories...")
+    date_str = time.strftime("%Y%m%d-%H%M%S", time.localtime(time.time()))
+    ft_models_dir = os.path.join(models_dir, "ft_" + date_str)
+    os.mkdir(ft_models_dir)
+    ft_output_dir = os.path.join(outputs_dir,"ft_"+date_str)
+    os.mkdir(ft_output_dir)
+
     device = get_optimal_device()
 
     # initialize model: encoder and decoder
@@ -143,7 +156,7 @@ if __name__ == '__main__':
 
     # ################################################################# TODO: REMOVE FROM THIS LINE
     if pre_training_model_encoder:
-        encoder_path = os.path.join(models_dir, pre_training_model_encoder)
+        encoder_path = os.path.join(ft_models_dir, pre_training_model_encoder)
         assert os.path.exists(encoder_path), \
             f"Could not find {pre_training_model_encoder} in {models_dir}"
         encoder.load_state_dict(torch.load(encoder_path), strict=False)
@@ -151,7 +164,7 @@ if __name__ == '__main__':
         print(f"Initialising encoder randomly")
         initialise_weights(encoder)
     if pre_training_model_decoder:
-        decoder_path = os.path.join(models_dir, pre_training_model_decoder)
+        decoder_path = os.path.join(ft_models_dir, pre_training_model_decoder)
         assert os.path.exists(decoder_path), \
             f"Could not find {pre_training_model_decoder} in {models_dir}"
         decoder.load_state_dict(torch.load(decoder_path), strict=False)
@@ -212,7 +225,7 @@ if __name__ == '__main__':
 
         # test everything is working
         print("View images, labels and as yet unlearned model output before starting")
-        view_training(segment_model, train_loader, True, device, plot_and_image_file_title="Before Training")
+        view_training(segment_model, train_loader, True, device, ft_output_dir, plot_and_image_file_title="Before Training")
         print(f"Starting overlap: {overlap(segment_model, train_loader, device):.3f}")
 
         # Training loop
@@ -265,7 +278,7 @@ if __name__ == '__main__':
                 f"Epoch [{epoch + 1}/{ft_num_epochs}] completed in {(epoch_end_time - epoch_start_time):.0f}s, train Loss: {running_train_loss / len(train_loader):.4f} "
                 f"Test Loss: {running_test_loss / len(test_loader):.4f}")
 
-            view_training(segment_model, test_loader, True, device, plot_and_image_file_title=f"During Training (epoch {epoch + 1} of {ft_num_epochs}) on Test")
+            view_training(segment_model, test_loader, True, device, ft_output_dir, plot_and_image_file_title=f"During Training (epoch {epoch + 1} of {ft_num_epochs}) on Test")
 
         end_time = time.perf_counter()
         print(f"Segmentation training finished after {(end_time - start_time):.0f}s")
@@ -318,13 +331,13 @@ if __name__ == '__main__':
             # plt.show()
             plt.close()
 
-        view_training(segment_model, train_loader, True, device, plot_and_image_file_title=f"After Training ({ft_num_epochs} epochs) on Test")
+        view_training(segment_model, train_loader, True, device, ft_output_dir,plot_and_image_file_title=f"After Training ({ft_num_epochs} epochs) on Test")
 
     # display inference on test set
     if check_semantic_segmentation:
         example_range = 5
         for its in range(example_range):
-            view_training(segment_model, test_loader, True, device,  plot_and_image_file_title=f"After Training ({ft_num_epochs} epochs) Example {its+1} of {example_range} on Test")
+            view_training(segment_model, test_loader, True, device, ft_output_dir,  plot_and_image_file_title=f"After Training ({ft_num_epochs} epochs) Example {its+1} of {example_range} on Test")
             print(f"Sample test set overlap: {overlap(segment_model, test_loader, device):.3f}")
 
     print("Fine-tuning script complete")
