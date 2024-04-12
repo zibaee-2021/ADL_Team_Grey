@@ -7,7 +7,7 @@ class IoULoss(nn.Module):
         super().__init__()
         self.preds_are_logits = preds_are_logits
 
-    def forward(self, preds, ground_truth, use_negative_log_loss=True):
+    def forward(self, preds, ground_truth, use_negative_log_loss=False):
         """
         Compute IoU loss (can be negative log loss for more stable training).
         Negative log loss is more stable that alternative (which is commented out).
@@ -18,6 +18,9 @@ class IoULoss(nn.Module):
         :param use_negative_log_loss: True to return negative log of the loss, otherwise just the loss.
         :return: Intersection over Union loss. Can be raw loss or negative log loss
         """
+        if torch.min(ground_truth) < 0:
+            ground_truth = torch.sigmoid(ground_truth)
+
         if use_negative_log_loss:
             iou = iou_metric(preds, ground_truth, self.preds_are_logits)
             loss = -1. * iou.log()
