@@ -45,7 +45,7 @@ params = {
 
     # Training
     'optimizer': "Adam",  # Adam, AdamW, SGD
-    'ft_num_epochs': 1,
+    'ft_num_epochs': 5,
     'class_weights': [1.0, 0.5, 1.5],  # pet, background, boundary
 }
 encoder, decoder = get_network(params, params['num_classes'])
