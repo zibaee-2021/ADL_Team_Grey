@@ -207,3 +207,9 @@ class OxfordPetDataset(Dataset):
         return image, target
 
 
+# I calculated mean and std dev on a random 256 batch of the OxfordPetDataset:
+# mean is tensor([0.4811, 0.4492, 0.3958])
+# std is tensor([0.2645, 0.2596, 0.2681])
+#
+# If normalisation is beneficial for the transform then these are the values to use.
+
