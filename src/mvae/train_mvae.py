@@ -46,7 +46,7 @@ load_models = not run_pretraining_and_save  # Don't load if training but do if n
 params = {
     # Image
     "image_size": 224,  # number of pixels square
-    "num_channels": 3,  #  RGB image -> 3 channels
+    "num_channels": 3,  # RGB image -> 3 channels
     "patch_size": 14,  # must be divisor of image_size
     'num_classes': 3,
 
@@ -149,7 +149,7 @@ if __name__ == '__main__':
     patch_masker.test(vae_model, pt_dataloader, True, device)
 
     ###############
-    #  mvae training
+    # mvae training
     vae_model.train()
     if run_pretraining_and_save:
         print("In pre-training")
@@ -181,7 +181,7 @@ if __name__ == '__main__':
 
                 # outputs = torch.sigmoid(logits)  # CNNDecoder output is already sigmoid
 
-                #  squash to 0-1 pixel values
+                # squash to 0-1 pixel values
                 masked_outputs = outputs * masks
 
                 normalise_label_between_0_and_1 = False

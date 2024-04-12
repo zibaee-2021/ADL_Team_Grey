@@ -26,7 +26,7 @@ class Animals10Dataset(Dataset):
                     mean=[0.5181, 0.5007, 0.4129],
                     std=[0.2685, 0.2637, 0.2809])
                 # mean=[0.45, 0.5, 0.55],
-                # std=[0.2, 0.2, 0.2]),  #  normalising helps convergence
+                # std=[0.2, 0.2, 0.2]),  # normalising helps convergence
         ])
 
         # Get all paths in the root directory
