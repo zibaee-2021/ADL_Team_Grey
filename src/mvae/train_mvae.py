@@ -79,12 +79,12 @@ pt_optimizer = params['optimizer']
 
 # file paths
 data_dir = os.path.join(datasets_dir,"Animals-10/raw-img/")
-model_file = "masked_autoencoder_model.pth"
-encoder_file = "masked_autoencoder_encoder.pth"
-decoder_file = "masked_autoencoder_decoder.pth"
 
 # test image
 test_image_path = os.path.join(data_dir, "image_0.png")
+
+encoder_path = None
+decoder_path = None
 
 if __name__ == '__main__':
 
@@ -95,12 +95,15 @@ if __name__ == '__main__':
 
     if not os.path.exists(models_dir):
         os.mkdir(models_dir)
+    if not os.path.exists(outputs_dir):
+        os.mkdir(outputs_dir)
 
-    model_path = os.path.join(models_dir, model_file)
-    encoder_path = os.path.join(models_dir, encoder_file)
-    decoder_path = os.path.join(models_dir, decoder_file)
-
-    print(f"{data_dir = }\n{model_path = }\n{encoder_path = }\n{decoder_path = }\n{test_image_path = }")
+    print("Creating Output Directories...")
+    date_str = time.strftime("%Y%m%d-%H%M%S", time.localtime(time.time()))
+    pt_models_dir = os.path.join(models_dir, "pt_" + date_str)
+    os.mkdir(pt_models_dir)
+    pt_output_dir = os.path.join(outputs_dir,"pt_"+date_str)
+    os.mkdir(pt_output_dir)
 
     device = get_optimal_device()
 
@@ -159,13 +162,14 @@ if __name__ == '__main__':
 
     # test everything is working
     print("View images, masked imaged and predicted images before starting")
-    patch_masker.test(vae_model, validationloader, True, device, "Before Training")
+    patch_masker.test(vae_model, validationloader, True, device, pt_output_dir, "Before Training")
 
     ###############
     # mvae training
     vae_model.train()
     if run_pretraining_and_save:  # TODO TO REMOVE THIS CONDITION AS NO ELSE CONDITION EXISTS
         print("In pre-training")
+
         start_time = time.perf_counter()
 
         loss_func_choice = {'mse': nn.MSELoss(),
@@ -224,7 +228,7 @@ if __name__ == '__main__':
             if check_masking_and_infilling and epoch % 10 == 0:
                 vae_model.eval()
                 for _ in range(4):
-                    patch_masker.test(vae_model, validationloader, True, device, f"During Training (Epoch {epoch+1} of {pt_num_epochs}) on Validation")
+                    patch_masker.test(vae_model, validationloader, True, device, pt_output_dir, f"During Training (Epoch {epoch+1} of {pt_num_epochs}) on Validation")
 
             if save_models and (epoch % 20 == 0 or epoch == pt_num_epochs):
                 print("Saving Models")
@@ -238,11 +242,11 @@ if __name__ == '__main__':
                 decoder_model_file = f"decoder_model_{timestamp}.pt"
                 epoch_loss_file = f"epoch_loss_{final_epoch_loss}.txt"  # Optionally include epoch loss in the file name
 
-                encoder_path = os.path.join(models_dir, encoder_model_file)
+                encoder_path = os.path.join(pt_models_dir, encoder_model_file)
                 torch.save(encoder.state_dict(), encoder_path)
                 print(f"Saved {encoder_path}")
 
-                decoder_path = os.path.join(models_dir, decoder_model_file)
+                decoder_path = os.path.join(pt_models_dir, decoder_model_file)
                 torch.save(pt_decoder.state_dict(), decoder_path)
                 print(f"Saved {decoder_path}")
 
@@ -270,7 +274,7 @@ if __name__ == '__main__':
             plt.ylabel("Loss")
             plt.xlabel("Epoch")
             plt.tight_layout()
-            plt.savefig(os.path.join(mvae_dir, 'pt_losses' + date_str + '.png'))
+            plt.savefig(os.path.join(outputs_dir, 'pt_losses' + date_str + '.png'))
 
             # plt.show()
             plt.close()
@@ -279,6 +283,6 @@ if __name__ == '__main__':
         vae_model.eval()
         examples = 5
         for its in range(examples):
-            patch_masker.test(vae_model, validationloader, True, device, f"After Training Example {its+1} of {examples} on Validation")
+            patch_masker.test(vae_model, validationloader, True, device, pt_output_dir,f"After Training Example {its+1} of {examples} on Validation")
 
     print("MVAE Script complete")
