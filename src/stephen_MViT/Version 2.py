@@ -58,7 +58,7 @@ def view_training(model, loader, display):
     num_images = min(images.size(0),4)
 
     outputs = model(images.to(device))
-    outputs = outputs.cpu().detach()
+    outputs = torch.sigmoid(outputs.cpu().detach())
     images, labels = images.cpu(), labels.cpu()
     output_labels = torch.argmax(outputs.cpu().detach(), dim=1)
 
@@ -89,6 +89,7 @@ def view_training(model, loader, display):
         ax3.axis('off')
         ax3.set_title('Output (argmax)')
         ax3.imshow(output_labels[i])
+    fig.suptitle("Segmentation Predictions")
     plt.tight_layout()
     date_str = time.strftime("_%H.%M_%d-%m-%Y", time.localtime(time.time()))
     plt.savefig(params['script_dir']+'/Output/labels'+date_str+'.png')
@@ -220,6 +221,7 @@ def mask_tester(patch_masker, model, loader, display):
         ax3.axis('off')
         ax3.set_title('Inpainted')
         ax3.imshow(inpainted_images[i].cpu().permute(1,2,0)) 
+    fig.suptitle("Mask Infilling")
     plt.tight_layout()
     date_str = time.strftime("_%H.%M_%d-%m-%Y", time.localtime(time.time()))
     plt.savefig(params['script_dir']+'/Output/masks'+date_str+'.png')
@@ -280,6 +282,13 @@ def construct_file_name(params):
     return string
 
 
+def inverse_normalize(tensor, mean=[0.45, 0.5, 0.55],std=[0.2, 0.2, 0.2]):
+    image_tensor=tensor.clone()
+    for t, m, s in zip(image_tensor, mean, std):
+        t.mul_(s).add_(m)
+    return image_tensor
+
+
 class CNNEncoder(nn.Module):
     def __init__(self, params):
         super(CNNEncoder, self).__init__()
@@ -334,7 +343,7 @@ class CNNDecoder(nn.Module):
         x = self.bnc1(self.relu(self.conv1(x))) # output 28
         x = self.bnc2(self.relu(self.conv2(x))) # output 56
         x = self.bnc3(self.relu(self.conv3(x))) # output 112
-        x = torch.sigmoid(self.bnc4(self.conv4(x))) #output 224 * 224
+        x = self.bnc4(self.conv4(x)) #output 224 * 224    # removed the sigmoid
         #x = torch.softmax(x, dim=1) # normalise to [0,1]
 
         return x # output batch * output_channels * image_size * image_size
@@ -542,7 +551,7 @@ if __name__ == '__main__':
     device = get_optimal_device()
 
     control_params = {
-        "run_pretrainer": True,
+        "run_pretrainer": False,
         "check_masking": False,
         "check_infilling": False,
         "check_oxford_batch": False,
@@ -560,20 +569,20 @@ if __name__ == '__main__':
         "patch_size": 14,               # must be divisor of image_size
         'batch_size': 32,
         'num_classes': 3,
-        'mask_ratio': 0.75,
+        'mask_ratio': 0.5,
     }
     network_params = {
         'network': "CNN",               # CNN, ViT, Linear
         'num_features': 768,            # 768
         'hidden_dim': 2048,             # 
         "vit_num_layers": 8,            # 12ViT parameter
-        "vit_num_heads": 12,            # 8 ViT parameter
+        "vit_num_heads": 8,            # 8 ViT parameter
         "vit_mlp_dim": 2048,            # 1024 ViT parameter
     }
     training_params = {
         'optimizer': "Adam",            # Adam, AdamW, SGD
         'pt_num_epochs': 32,
-        'ft_num_epochs': 32,
+        'ft_num_epochs': 64,             # 32, 64, 128
         'learning_rate': 0.001,
         'momentum': 0.9,                # not used in Adam
         'report_every': 10,
@@ -690,7 +699,7 @@ if __name__ == '__main__':
     # Download, transform and load the dataset
     transform = transforms.Compose([transforms.Resize((params['image_size'], params['image_size'])),
                                         transforms.ToTensor(),
-                                        transforms.Normalize(mean=[0.45, 0.5, 0.55], std=[0.2, 0.2, 0.2]) # normalising helps convergence
+                                        # transforms.Normalize(mean=[0.45, 0.5, 0.55], std=[0.2, 0.2, 0.2]) # normalising helps convergence
                                         ]) # Define data transformations: resize and convert to PyTorch tensors
     train_dataset = datasets.OxfordIIITPet(root=params['script_dir']+"/Data/OxfordIIITPet/Train", split='trainval', download=True, target_types='segmentation', transform=transform)
     train_loader = torch.utils.data.DataLoader(train_dataset, batch_size = params['batch_size'], shuffle=True)
