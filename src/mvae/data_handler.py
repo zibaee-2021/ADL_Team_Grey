@@ -155,7 +155,7 @@ class PatchMasker:
         date_str = time.strftime("%H.%M_%d-%m-%Y_", time.localtime(time.time()))
         plt.savefig(date_str + plot_and_image_file_title + '.png')
         plt.tight_layout()
-        plt.show()
+        # plt.show()
         plt.close()
 
 

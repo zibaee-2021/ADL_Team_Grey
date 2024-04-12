@@ -221,7 +221,6 @@ if __name__ == '__main__':
 
             wandb.log({"Epoch Loss": train_loss, "Epoch Time": epoch_time})
 
-
             if check_masking_and_infilling and epoch % 10 == 0:
                 vae_model.eval()
                 for _ in range(4):
@@ -270,7 +269,7 @@ if __name__ == '__main__':
             plt.ylabel("Loss")
             plt.xlabel("Epoch")
             plt.tight_layout()
-            plt.show()
+            # plt.show()
             plt.close()
 
     if check_masking_and_infilling:

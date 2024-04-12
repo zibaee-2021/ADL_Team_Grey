@@ -167,7 +167,7 @@ def view_training(model, loader: DataLoader, display:bool, device: torch.device,
     plt.tight_layout()
     date_str = time.strftime("%H.%M_%d-%m-%Y_", time.localtime(time.time()))
     plt.savefig(date_str + plot_and_image_file_title + '.png')
-    plt.show()
+    # plt.show()
     plt.close()
 
 

@@ -116,7 +116,7 @@ params = {
 
     # Training
     'optimizer': "Adam",  # Adam, AdamW, SGD
-    'ft_num_epochs': 1,
+    'ft_num_epochs': 5,
     'class_weights': [1.0, 0.5, 1.5],  # pet, background, boundary
 }
 
@@ -314,7 +314,7 @@ if __name__ == '__main__':
             plt.ylabel("Loss")
             plt.xlabel("Epoch")
             plt.tight_layout()
-            plt.show()
+            # plt.show()
             plt.close()
 
         view_training(segment_model, train_loader, True, device, plot_and_image_file_title=f"After Training ({ft_num_epochs} epochs) on Test")
