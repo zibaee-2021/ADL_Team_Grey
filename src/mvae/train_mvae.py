@@ -9,7 +9,7 @@ import matplotlib.pyplot as plt
 import wandb
 from datetime import datetime
 from src.utils.IoUMetric import IoULoss
-from src.utils import misc
+
 # our code
 from src.utils.paths import *
 from src.utils.device import get_optimal_device
@@ -79,9 +79,6 @@ pt_optimizer = params['optimizer']
 
 # file paths
 data_dir = os.path.join(datasets_dir,"Animals-10/raw-img/")
-
-# test image
-test_image_path = os.path.join(data_dir, "image_0.png")
 
 encoder_path = None
 decoder_path = None
