@@ -21,6 +21,8 @@ from src.shared_network_architectures.networks_pt import (
     SegmentModel
 )
 
+from src.IoUMetric import IoULoss
+
 # TODO:
 """
 - add wandb for param checking
@@ -154,8 +156,17 @@ if __name__ == '__main__':
 
         # loss and optimiser
         class_weights = torch.tensor(params['class_weights']).to(device)
-        criterion = torch.nn.CrossEntropyLoss(weight=class_weights).to(
-            device)  #  use of weights to correct for disparity in foreground, background, boundary
+        # criterion = torch.nn.CrossEntropyLoss(weight=class_weights).to(device)  # TODO: This was here before. Remove?
+
+        # Use of weights to correct for disparity in foreground, background, boundary
+        loss_func_choice = {'cel': torch.nn.CrossEntropyLoss(weight=class_weights),
+                            'mse': torch.nn.MSELoss(),
+                            'bce': torch.nn.BCELoss(),
+                            'iou': IoULoss(preds_are_logits=False).forward}
+
+        criterion = loss_func_choice['cel']
+        criterion = criterion.to(device)
+
         optimizer = get_optimizer(segment_model, params)
 
         # test everything is working
