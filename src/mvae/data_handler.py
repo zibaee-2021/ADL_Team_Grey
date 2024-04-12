@@ -9,7 +9,7 @@ from PIL import Image
 from matplotlib import pyplot as plt
 from torch.utils.data import Dataset, DataLoader
 from torchvision.transforms import transforms
-from src.utils.paths import animals_10_dir
+from src.utils.paths import animals_10_dir, mvae_dir
 
 
 class Animals10Dataset(Dataset):
@@ -23,9 +23,9 @@ class Animals10Dataset(Dataset):
                 transforms.ToTensor(),
                 transforms.Resize(self.target_size),
                 # transforms.ToTensor(),
-                transforms.Normalize(
-                    mean=[0.5181, 0.5007, 0.4129],
-                    std=[0.2685, 0.2637, 0.2809])
+                #transforms.Normalize(
+                #    mean=[0.5181, 0.5007, 0.4129],
+                #    std=[0.2685, 0.2637, 0.2809])
                 # mean=[0.45, 0.5, 0.55],
                 # std=[0.2, 0.2, 0.2]),  # normalising helps convergence
         ])
@@ -123,7 +123,7 @@ class PatchMasker:
         masked_images, masks = self.mask_patches(images)
         model.eval()
         with torch.no_grad():
-            infill_images = model(masked_images.to(device))
+            infill_images = torch.sigmoid(model(masked_images.to(device)))
             inpainted_images = masked_images.to(device) + infill_images.to(device) * (masked_images.to(device) == 0).float()
 
         if display is False:
@@ -153,9 +153,9 @@ class PatchMasker:
             ax3.imshow(inpainted_images[i].cpu().permute(1, 2, 0))
 
         date_str = time.strftime("%H.%M_%d-%m-%Y_", time.localtime(time.time()))
-        plt.savefig(date_str + plot_and_image_file_title + '.png')
+        plt.savefig(os.path.join(mvae_dir, date_str + plot_and_image_file_title + '.png'))
         plt.tight_layout()
-        plt.show()
+        # plt.show()
         plt.close()
 
 
@@ -192,7 +192,7 @@ def compute_loss(model,dataloader, patch_masker, pt_criterion, params, device):
 
             # Forward pass & compute the loss
             logits = model(masked_images)
-            #outputs = torch.sigmoid(logits)  #  squash to 0-1 pixel values
+            outputs = torch.sigmoid(logits)  #  squash to 0-1 pixel values
             masked_outputs = logits * masks  # dont calculate loss for masked portion
             loss = pt_criterion(masked_outputs, masked_images) / (1.0 - params['mask_ratio'])  #  normalise to make losses comparable across different mask ratios
             validation_loss=validation_loss+loss

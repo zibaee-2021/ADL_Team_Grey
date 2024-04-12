@@ -189,7 +189,7 @@ if __name__ == '__main__':
 
                 # Forward pass & compute the loss
                 logits = vae_model(masked_images)
-                #outputs = torch.sigmoid(logits)  #  squash to 0-1 pixel values
+                outputs = torch.sigmoid(logits)  #  squash to 0-1 pixel values
                 masked_outputs = logits * masks  # dont calculate loss for masked portion
                 loss = pt_criterion(masked_outputs, masked_images) / (1.0 - params[
                     'mask_ratio'])  #  normalise to make losses comparable across different mask ratios
@@ -220,7 +220,6 @@ if __name__ == '__main__':
             losses.append((train_loss, valid_loss))
 
             wandb.log({"Epoch Loss": train_loss, "Epoch Time": epoch_time})
-
 
             if check_masking_and_infilling and epoch % 10 == 0:
                 vae_model.eval()
@@ -266,11 +265,14 @@ if __name__ == '__main__':
             fig.suptitle("Pre-trainer losses")
             date_str = time.strftime("_%H.%M_%d-%m-%Y", time.localtime(time.time()))
             # TODO: think about saving
-            plt.savefig('pt_losses' + date_str + '.png')
+
+            plt.legend()
             plt.ylabel("Loss")
             plt.xlabel("Epoch")
             plt.tight_layout()
-            plt.show()
+            plt.savefig(os.path.join(mvae_dir, 'pt_losses' + date_str + '.png'))
+
+            # plt.show()
             plt.close()
 
     if check_masking_and_infilling:

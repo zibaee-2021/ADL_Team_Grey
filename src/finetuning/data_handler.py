@@ -131,7 +131,7 @@ def view_training(model, loader: DataLoader, display:bool, device: torch.device,
     model.eval()
     with torch.no_grad():
         outputs = model(images.to(device))
-        outputs = outputs.cpu().detach()
+        outputs = torch.sigmoid(outputs.cpu().detach())
         images, labels = images.cpu(), labels.cpu()
         output_labels = torch.argmax(outputs.cpu().detach(), dim=1)
 
@@ -166,8 +166,8 @@ def view_training(model, loader: DataLoader, display:bool, device: torch.device,
         ax3.imshow(output_labels[i])
     plt.tight_layout()
     date_str = time.strftime("%H.%M_%d-%m-%Y_", time.localtime(time.time()))
-    plt.savefig(date_str + plot_and_image_file_title + '.png')
-    plt.show()
+    plt.savefig(os.path.join(fine_tuning_dir, date_str + plot_and_image_file_title + '.png'))
+    # plt.show()
     plt.close()
 
 

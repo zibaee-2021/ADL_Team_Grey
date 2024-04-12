@@ -67,7 +67,6 @@ from src.utils.IoUMetric import IoULoss
 # COMMENTING OUT CODE THAT IS ONLY FOR RUNNING FROM CMD LINE ##########
 
 # TODO:
-
 """
 - add wandb for param checking
 - tidy up config
@@ -119,7 +118,7 @@ params = {
 
     # Training
     'optimizer': "Adam",  # Adam, AdamW, SGD
-    'ft_num_epochs': 1,
+    'ft_num_epochs': 5,
     'class_weights': [1.0, 0.5, 1.5],  # pet, background, boundary
 }
 
@@ -166,7 +165,7 @@ if __name__ == '__main__':
 
     transform = transforms.Compose([transforms.Resize((params['image_size'], params['image_size'])),
                                     transforms.ToTensor(),
-                                    transforms.Normalize(mean=[0.45, 0.5, 0.55], std=[0.2, 0.2, 0.2])
+                                    # transforms.Normalize(mean=[0.45, 0.5, 0.55], std=[0.2, 0.2, 0.2])
                                     # TODO: You can try these *calculated* mean and std dev:
                                     # mean is [0.4811, 0.4492, 0.3958]
                                     # std is [0.2645, 0.2596, 0.2681]
@@ -313,11 +312,12 @@ if __name__ == '__main__':
             fig.suptitle("Fine-tuner losses")
             date_str = time.strftime("_%H.%M_%d-%m-%Y", time.localtime(time.time()))
             # TODO: think about saving
-            plt.savefig('ft_losses' + date_str + '.png')
             plt.ylabel("Loss")
             plt.xlabel("Epoch")
+            plt.legend()
             plt.tight_layout()
-            plt.show()
+            plt.savefig(os.path.join(fine_tuning_dir, 'ft_losses' + date_str + '.png'))
+            # plt.show()
             plt.close()
 
         view_training(segment_model, train_loader, True, device, plot_and_image_file_title=f"After Training ({ft_num_epochs} epochs) on Test")
