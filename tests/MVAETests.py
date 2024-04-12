@@ -1,5 +1,4 @@
 from unittest import TestCase
-import src.older_versions.MVAE_2903_working as mvae
 import torch
 import torch.nn.functional as F
 import src.IoUMetric as ioumet
