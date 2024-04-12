@@ -6,8 +6,9 @@ import glob
 import torch
 from PIL import Image
 from matplotlib import pyplot as plt
-from torch.utils.data import Dataset
+from torch.utils.data import Dataset, DataLoader
 from torchvision.transforms import transforms
+from src.utils.paths import animals_10_dir
 
 
 class Animals10Dataset(Dataset):
@@ -18,12 +19,15 @@ class Animals10Dataset(Dataset):
         self.root_dir = root_dir
         self.target_size = target_size
         self.transform = transforms.Compose([
-                transforms.Resize(self.target_size),
                 transforms.ToTensor(),
+                transforms.Resize(self.target_size),
+                # transforms.ToTensor(),
                 transforms.Normalize(
-                    mean=[0.45, 0.5, 0.55],
-                    std=[0.2, 0.2, 0.2])  #  normalising helps convergence
-            ])
+                    mean=[0.5181, 0.5007, 0.4129],
+                    std=[0.2685, 0.2637, 0.2809])
+                # mean=[0.45, 0.5, 0.55],
+                # std=[0.2, 0.2, 0.2]),  #  normalising helps convergence
+        ])
 
         # Get all paths in the root directory
         all_paths = [os.path.join(root_dir, f) for f in os.listdir(self.root_dir)]
@@ -31,7 +35,9 @@ class Animals10Dataset(Dataset):
         # Filter out directories, keep only files
         self.images = sorted([f for f in all_paths if os.path.isfile(f)])
 
-        if self.images is None or self.images == []:  # assume the original dir structure of `raw-img/**/<images files>`
+        # If code above doesn't find the files, the code below will.
+        # Assume original dir structure i.e. `raw-img/**/<images files>`
+        if self.images is None or self.images == []:
             img_dir = os.path.join(root_dir, '**')
             accepted_files = []
             accepted_fs = [os.path.join(img_dir, '*.jpg'),
@@ -59,6 +65,8 @@ class Animals10Dataset(Dataset):
             img = self.transform(img)
 
         return img
+
+
 class PatchMasker:
     """
     Divide the image into non-overlapping patches and randomly mask a fixed number of patches.
@@ -146,3 +154,26 @@ class PatchMasker:
         date_str = time.strftime("_%H.%M_%d-%m-%Y", time.localtime(time.time()))
         plt.savefig('masks' + date_str + '.png')
         plt.close()
+
+
+def compute_mean_and_std_for_animals10():
+    # From the unnormalised Animals-10, this function calculates a mean of tensor([0.5178, 0.5003, 0.4127]) and
+    # standard deviation of tensor([0.2684, 0.2635, 0.2807])
+
+    animals_ds = Animals10Dataset(root_dir=os.path.join(animals_10_dir, 'raw-img'))
+    animals_dataloader = DataLoader(animals_ds, batch_size=512, shuffle=True)
+
+    channels_sum, channels_sqd_sum, num_batches = 0, 0, 0
+
+    for data in animals_dataloader:
+        channels_sum += torch.mean(data, dim=[0, 2, 3])
+        channels_sqd_sum += torch.mean(data**2, dim=[0, 2, 3])
+        num_batches += 1
+
+    mean = channels_sum / num_batches
+    std = (channels_sqd_sum / num_batches - mean ** 2) ** 0.5
+    return mean, std
+
+
+if __name__ == '__main__':
+    m, s = compute_mean_and_std_for_animals10()
