@@ -1,5 +1,4 @@
 import torch
-import torchvision.transforms as transforms
 from torch import nn
 from torch.utils.data import DataLoader
 import time
@@ -8,8 +7,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 import wandb
 from datetime import datetime
-from src.IoUMetric import IoULoss
-
+from src.utils.IoUMetric import IoULoss
+from src.utils import misc
 # our code
 from src.utils.paths import *
 from src.utils.device import get_optimal_device
@@ -186,11 +185,8 @@ if __name__ == '__main__':
                 masked_outputs = outputs * masks
 
                 normalise_label_between_0_and_1 = False
-
                 if normalise_label_between_0_and_1:
-                    min_vals = masked_images.view(masked_images.size(0), -1).min(1, keepdim=True)[0].view(-1, 1, 1, 1)
-                    max_vals = masked_images.view(masked_images.size(0), -1).max(1, keepdim=True)[0].view(-1, 1, 1, 1)
-                    normalized_tensor = (masked_images - min_vals) / (max_vals - min_vals)
+                    misc.normalise(masked_images)
 
                 # dont calculate loss for masked portion
                 loss = pt_criterion(masked_outputs, masked_images) / (1.0 - params['mask_ratio'])  #  normalise to make losses comparable across different mask ratios
