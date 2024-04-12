@@ -1,5 +1,6 @@
 import torch
 from torch import nn
+from src.utils import misc
 
 
 class IoULoss(nn.Module):
@@ -19,7 +20,7 @@ class IoULoss(nn.Module):
         :return: Intersection over Union loss. Can be raw loss or negative log loss
         """
         if torch.min(ground_truth) < 0:
-            ground_truth = torch.sigmoid(ground_truth)
+            ground_truth = misc.normalise(ground_truth)
 
         if use_negative_log_loss:
             iou = iou_metric(preds, ground_truth, self.preds_are_logits)
