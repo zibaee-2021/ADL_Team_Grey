@@ -1,3 +1,4 @@
+# GROUP19_COMP0197
 import torch
 
 def get_optimal_device():

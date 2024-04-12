@@ -1,3 +1,4 @@
+# GROUP19_COMP0197
 # -*- coding: utf-8 -*-
 """Copy of ADL CW2.ipynb
 
@@ -63,7 +64,7 @@ load_models = False
 params = {
     # image
     "image_size": 224,  # number of pixels square
-    "num_channels": 3,  #  RGB image -> 3 channels
+    "num_channels": 3,  # RGB image -> 3 channels
     "patch_size": 16,  # must be divisor of image_size
 
     # vision transformer encoder
@@ -178,7 +179,7 @@ if __name__ == '__main__':
         plt.show()
 
     ###############
-    #  mvae training
+    # mvae training
     if run_pretraining:
         print("In pre-training")
         start_time = time.perf_counter()

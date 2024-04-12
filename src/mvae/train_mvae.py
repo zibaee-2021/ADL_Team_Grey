@@ -1,3 +1,4 @@
+# GROUP19_COMP0197
 import torch
 from torch import nn
 from torch.utils.data import DataLoader
@@ -189,7 +190,7 @@ if __name__ == '__main__':
                     misc.normalise(masked_images)
 
                 # dont calculate loss for masked portion
-                loss = pt_criterion(masked_outputs, masked_images) / (1.0 - params['mask_ratio'])  #  normalise to make losses comparable across different mask ratios
+                loss = pt_criterion(masked_outputs, masked_images) / (1.0 - params['mask_ratio'])  # normalise to make losses comparable across different mask ratios
 
                 # Backward pass and optimization
                 pt_optimizer.zero_grad()

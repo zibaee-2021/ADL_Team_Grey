@@ -1,11 +1,12 @@
+# GROUP19_COMP0197
 # External packages
-import torch
-import torchvision.transforms as transforms
-from matplotlib import pyplot as plt
-from torch.utils.data import DataLoader, Dataset
-from PIL import Image
 import os
 import time
+import torch
+import torchvision.transforms as transforms
+from torch.utils.data import DataLoader, Dataset
+from PIL import Image
+from matplotlib import pyplot as plt
 
 from src.utils.paths import fine_tuning_dir
 
@@ -34,7 +35,7 @@ def one_hot_to_tensor(one_hot):
     """
     if len(one_hot.shape) == 3:  # no batch dimension
         tensor = torch.argmax(one_hot, dim=0).float()
-        tensor /= one_hot.size(0) - 1  #  normalise to [0,1]
+        tensor /= one_hot.size(0) - 1  # normalise to [0,1]
     elif len(one_hot.shape) == 4:  # has batch dimension
         tensor = torch.argmax(one_hot, dim=1).float()
         tensor /= one_hot.size(1) - 1
@@ -64,7 +65,7 @@ def one_hot_to_tensor(one_hot):
 #         else:
 #             self.transform = transforms.Compose([transforms.Resize((self.image_size, self.image_size)),
 #                                         transforms.ToTensor(),
-#                                         transforms.Normalize(mean=[0.45, 0.5, 0.55], std=[0.2, 0.2, 0.2]) # normalising helps convergence
+#                                         transforms.Normalize(mean=[0.45, 0.5, 0.55], std=[0.2, 0.2, 0.2]) #normalising helps convergence
 #                                         ])
 #
 #     def __len__(self):

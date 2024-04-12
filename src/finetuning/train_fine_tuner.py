@@ -1,11 +1,12 @@
+# GROUP19_COMP0197
 # External packages
+import time
 from datetime import datetime
+import random
+from matplotlib import pyplot as plt
+import numpy as np
 import torch
 from torchvision import datasets, transforms
-import time
-import random
-import numpy as np
-from matplotlib import pyplot as plt
 
 # our code
 from src.utils.model_init import initialise_weights
@@ -20,7 +21,6 @@ from src.shared_network_architectures.networks_pt import (
     get_network,
     SegmentModel
 )
-
 from src.utils.IoUMetric import IoULoss
 
 # TODO:
@@ -57,7 +57,7 @@ report_every = 25
 params = {
     # Image
     "image_size": 224,  # number of pixels square
-    "num_channels": 3,  #  RGB image -> 3 channels
+    "num_channels": 3,  # RGB image -> 3 channels
     'num_classes': 3,
 
     # Network
@@ -76,7 +76,7 @@ params = {
     # Training
     'optimizer': "Adam",  # Adam, AdamW, SGD
     'ft_num_epochs': 1,
-    'class_weights': [1.0, 0.5, 1.5],  #  pet, background, boundary
+    'class_weights': [1.0, 0.5, 1.5],  # pet, background, boundary
 }
 
 # Hyper-parameters
@@ -88,6 +88,8 @@ ft_lr = params["learning_rate"]
 oxford_path = oxford_3_dir
 
 if __name__ == '__main__':
+
+    print(f'\nSTARTING TRAIN_FINE_TUNER.PY')
     # Set seeds for random number generator
     torch.manual_seed(42)
     np.random.seed(42)
@@ -120,11 +122,11 @@ if __name__ == '__main__':
     transform = transforms.Compose([transforms.Resize((params['image_size'], params['image_size'])),
                                     transforms.ToTensor(),
                                     transforms.Normalize(mean=[0.45, 0.5, 0.55], std=[0.2, 0.2, 0.2])
-                                    # You can try these calculated mean and std dev:
+                                    # TODO: You can try these *calculated* mean and std dev:
                                     # mean is [0.4811, 0.4492, 0.3958]
                                     # std is [0.2645, 0.2596, 0.2681]
 
-                                    #  normalising helps convergence
+                                    # normalising helps convergence
                                     ])  # Define data transformations: resize and convert to PyTorch tensors
 
     # Fetch dataset (if not already saved locally)
@@ -155,7 +157,7 @@ if __name__ == '__main__':
         class_weights = torch.tensor(params['class_weights']).to(device)
         # criterion = torch.nn.CrossEntropyLoss(weight=class_weights).to(device)  # TODO: This was here before. Remove?
 
-        # Use of weights to correct for disparity in foreground, background, boundary
+        # Use of `class_weights` to correct for disparity in foreground, background, boundary
         loss_func_choice = {'cel': torch.nn.CrossEntropyLoss(weight=class_weights),
                             'mse': torch.nn.MSELoss(),
                             'bce': torch.nn.BCELoss(),
