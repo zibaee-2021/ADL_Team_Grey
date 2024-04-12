@@ -21,7 +21,7 @@ from src.shared_network_architectures.networks_pt import (
     SegmentModel
 )
 
-from src.IoUMetric import IoULoss
+from src.utils.IoUMetric import IoULoss
 
 # TODO:
 """
