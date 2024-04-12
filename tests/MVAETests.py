@@ -1,7 +1,6 @@
 from unittest import TestCase
 import torch
-import torch.nn.functional as F
-import src.IoUMetric as ioumet
+import src.utils.IoUMetric as ioumet
 
 
 class MVAETests(TestCase):
