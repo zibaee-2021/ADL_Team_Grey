@@ -24,47 +24,50 @@ from src.shared_network_architectures.networks_pt import (
 )
 from src.utils.IoUMetric import IoULoss
 
-params = {
-    # Image
-    "image_size": 224,  # number of pixels square
-    "num_channels": 3,  # RGB image -> 3 channels
-    'num_classes': 3,
+# COMMENTING OUT CODE THAT IS ONLY FOR RUNNING FROM CMD LINE ##########
+# params = {
+#     # Image
+#     "image_size": 224,  # number of pixels square
+#     "num_channels": 3,  # RGB image -> 3 channels
+#     'num_classes': 3,
+#
+#     # Network
+#     'network': "CNN",  # CNN, ViT, Linear
+#     'num_features': 768,  # 768
+#     'hidden_dim': 2048,
+#     "vit_num_layers": 4,  # 12ViT parameter
+#     "vit_num_heads": 8,  # 8 ViT parameter
+#     "vit_mlp_dim": 2048,  # 1024 ViT parameter#
+#
+#     # hyper-parameters
+#     "ft_batch_size": 32,
+#     "learning_rate": 0.001,
+#     "momentum": 0.9,
+#
+#     # Training
+#     'optimizer': "Adam",  # Adam, AdamW, SGD
+#     'ft_num_epochs': 1,
+#     'class_weights': [1.0, 0.5, 1.5],  # pet, background, boundary
+# }
+# encoder, decoder = get_network(params, params['num_classes'])
+#
+# if len(sys.argv) > 1:
+#     BUILD_BASELINE = sys.argv[1] == 'BUILD_BASELINE'
+#     if BUILD_BASELINE:
+#         print(f'\n\nYOU HAVE SELECTED TO BUILD A BASELINE MODEL, TRAINING ON OXFORD-3 DATASET ONLY')
+#         initialise_weights(encoder)
+#         initialise_weights(encoder)
+# else:
+#     print(f'\n\nYOU HAVE SELECTED TO FINE-TUNE A PRE-TRAINED MODEL'
+#           f"\n\n ... EXPECTING TO FIND PRETRAINED MODEL AT: \nrepr(../models/ft_encoder_model.pt) and "
+#           f"\nrepr(../models/ft_decoder_model.pt).")
+#     encoder.load_state_dict(torch.load('../models/ft_encoder_model.pt'), strict=False)
+#     decoder.load_state_dict(torch.load('../models/ft_decoder_model.pt'), strict=False)
 
-    # Network
-    'network': "CNN",  # CNN, ViT, Linear
-    'num_features': 768,  # 768
-    'hidden_dim': 2048,
-    "vit_num_layers": 4,  # 12ViT parameter
-    "vit_num_heads": 8,  # 8 ViT parameter
-    "vit_mlp_dim": 2048,  # 1024 ViT parameter#
-
-    # hyper-parameters
-    "ft_batch_size": 32,
-    "learning_rate": 0.001,
-    "momentum": 0.9,
-
-    # Training
-    'optimizer': "Adam",  # Adam, AdamW, SGD
-    'ft_num_epochs': 1,
-    'class_weights': [1.0, 0.5, 1.5],  # pet, background, boundary
-}
-encoder, decoder = get_network(params, params['num_classes'])
-
-if len(sys.argv) > 1:
-    BUILD_BASELINE = sys.argv[1] == 'BUILD_BASELINE'
-    if BUILD_BASELINE:
-        print(f'\n\nYOU HAVE SELECTED TO BUILD A BASELINE MODEL, TRAINING ON OXFORD-3 DATASET ONLY')
-        initialise_weights(encoder)
-        initialise_weights(encoder)
-else:
-    print(f'\n\nYOU HAVE SELECTED TO FINE-TUNE A PRE-TRAINED MODEL'
-          f"\n\n ... EXPECTING TO FIND PRETRAINED MODEL AT: \nrepr(../models/ft_encoder_model.pt) and "
-          f"\nrepr(../models/ft_decoder_model.pt).")
-    encoder.load_state_dict(torch.load('../models/ft_encoder_model.pt'), strict=False)
-    decoder.load_state_dict(torch.load('../models/ft_decoder_model.pt'), strict=False)
-
+# COMMENTING OUT CODE THAT IS ONLY FOR RUNNING FROM CMD LINE ##########
 
 # TODO:
+
 """
 - add wandb for param checking
 - tidy up config
