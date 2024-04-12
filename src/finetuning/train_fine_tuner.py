@@ -301,20 +301,21 @@ if __name__ == '__main__':
             for i, (train_loss, test_loss) in enumerate(losses):
                 f.write(f'Epoch: {i+1}, train loss = {train_loss:.5f}, test loss {test_loss:.5f}\n')
 
-        fig, ax = plt.subplots(figsize=(15,5))
-        train_losses = [l[0] for l in losses] # Ugly but works
-        test_losses = [l[1] for l in losses]
-        ax.plot(train_losses, label="Training loss", c="tab:blue")
-        ax.plot(test_losses, label="Test loss", c="tab:orange")
-        fig.suptitle("Fine-tuner losses")
-        date_str = time.strftime("_%H.%M_%d-%m-%Y", time.localtime(time.time()))
-        # TODO: think about saving
-        plt.savefig('ft_losses' + date_str + '.png')
-        plt.ylabel("Loss")
-        plt.xlabel("Epoch")
-        plt.tight_layout()
-        plt.show()
-        plt.close()
+        if losses:
+            fig, ax = plt.subplots(figsize=(15,5))
+            train_losses = [l[0] for l in losses] # Ugly but works
+            test_losses = [l[1] for l in losses]
+            ax.plot(train_losses, label="Training loss", c="tab:blue")
+            ax.plot(test_losses, label="Test loss", c="tab:orange")
+            fig.suptitle("Fine-tuner losses")
+            date_str = time.strftime("_%H.%M_%d-%m-%Y", time.localtime(time.time()))
+            # TODO: think about saving
+            plt.savefig('ft_losses' + date_str + '.png')
+            plt.ylabel("Loss")
+            plt.xlabel("Epoch")
+            plt.tight_layout()
+            plt.show()
+            plt.close()
 
         view_training(segment_model, train_loader, True, device, plot_and_image_file_title=f"After Training ({ft_num_epochs} epochs) on Test")
 

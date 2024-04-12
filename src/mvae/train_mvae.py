@@ -21,10 +21,9 @@ from src.shared_network_architectures.networks_pt import (
 )
 from src.mvae.data_handler import (
     Animals10Dataset,
-    PatchMasker
+    PatchMasker, compute_loss
 )
 
-print('\nRUNNING TRAIN_MVAE.PY...')
 
 ## Control
 ## Training
@@ -62,13 +61,13 @@ params = {
 
     # Hyper paramaters
     'pt_batch_size': 32,
-    'mask_ratio': 0.25,
+    'mask_ratio': 0.5,
     'learning_rate': 0.0001,
     'pt_momentum': 0.9,  # not used in Adam
 
     # Training
     'optimizer': "Adam",  # Adam, AdamW, SGD
-    'pt_num_epochs': 8,
+    'pt_num_epochs': 1,
 }
 
 mask_ratio = params['mask_ratio']
@@ -122,11 +121,23 @@ if __name__ == '__main__':
     # dataloader and model definition
     # load and pre-process Animals-10 dataset and dataloader & transform to normalize the data
     pt_dataset = Animals10Dataset(root_dir=os.path.join(animals_10_dir, "raw-img"))
-    pt_dataloader = DataLoader(pt_dataset,
-                               batch_size=params['pt_batch_size'],
-                               shuffle=True,
-                               drop_last=True,  # drop last batch so that all batches are complete
-                               num_workers=2)
+
+    # Split the training dataset into train_set, val_set
+    train_split_size = int(len(pt_dataset) // (100 / 95))
+    valid_split_size = int(len(pt_dataset) - train_split_size)
+
+    train_set, val_set = torch.utils.data.random_split(pt_dataset, [train_split_size, valid_split_size])
+
+    trainloader = DataLoader(train_set,
+                             batch_size=params['pt_batch_size'],
+                             shuffle=True,
+                             drop_last=True,  # drop last batch so that all batches are complete
+                             num_workers=2)
+    validationloader = DataLoader(val_set,
+                                  batch_size=params['pt_batch_size'],
+                                  shuffle=True,  # shuffle so it can demonstrate different images
+                                  drop_last=True,  # drop last batch so that all batches are complete
+                                  num_workers=2)
 
     # Instantiate the encoder & decoder for color images, patchmaker and model (encoder/decoder)
     encoder, pt_decoder = get_network(params, params['num_channels'])
@@ -148,7 +159,7 @@ if __name__ == '__main__':
 
     # test everything is working
     print("View images, masked imaged and predicted images before starting")
-    patch_masker.test(vae_model, pt_dataloader, True, device)
+    patch_masker.test(vae_model, validationloader, True, device, "Before Training")
 
     ###############
     # mvae training
@@ -171,27 +182,17 @@ if __name__ == '__main__':
             epoch_start_time = time.perf_counter()
             running_loss = 0.0
 
-            for its, input_images in enumerate(pt_dataloader):
-
+            for its, input_images in enumerate(trainloader):
                 input_images = input_images.to(device)
                 # Add random masking to the input images
                 masked_images, masks = patch_masker.mask_patches(input_images)
 
                 # Forward pass & compute the loss
                 logits = vae_model(masked_images)
-                outputs = logits  # temporary
-
-                # outputs = torch.sigmoid(logits)  # CNNDecoder output is already sigmoid
-
-                # squash to 0-1 pixel values
-                masked_outputs = outputs * masks
-
-                normalise_label_between_0_and_1 = False
-                if normalise_label_between_0_and_1:
-                    misc.normalise(masked_images)
-
-                # dont calculate loss for masked portion
-                loss = pt_criterion(masked_outputs, masked_images) / (1.0 - params['mask_ratio'])  # normalise to make losses comparable across different mask ratios
+                #outputs = torch.sigmoid(logits)  #  squash to 0-1 pixel values
+                masked_outputs = logits * masks  # dont calculate loss for masked portion
+                loss = pt_criterion(masked_outputs, masked_images) / (1.0 - params[
+                    'mask_ratio'])  #  normalise to make losses comparable across different mask ratios
 
                 # Backward pass and optimization
                 pt_optimizer.zero_grad()
@@ -208,70 +209,74 @@ if __name__ == '__main__':
                 if its % report_every == (report_every - 1):  # print every report_every mini-batches
                     curr_time = time.perf_counter() - start_time
                     print(
-                        f'Epoch [{epoch + 1} / {pt_num_epochs}], {pt_batch_size} image minibatch [{its + 1} / {len(pt_dataloader)}], '
+                        f'Epoch [{epoch + 1} / {pt_num_epochs}], {pt_batch_size} image minibatch [{its + 1} / {len(trainloader)}], '
                         f'average loss: {average_loss:.4f}, uptime: {curr_time:.2f}')
 
             epoch_time = time.perf_counter() - epoch_start_time
-            epoch_loss = running_loss / len(pt_dataloader)
+            train_loss = running_loss / len(trainloader)
+            valid_loss = compute_loss(vae_model,validationloader, patch_masker, pt_criterion, params, device)#compute loss per batch for validation set
             print(
-                f"Epoch [{epoch + 1}/{pt_num_epochs}] completed in {(epoch_time):.0f}s, Loss: {running_loss / len(pt_dataloader):.4f}")
-            losses.append(epoch_loss)
+                f"Epoch [{epoch + 1}/{pt_num_epochs}] completed in {(epoch_time):.0f}s, Training loss: {train_loss:.4f}, Validation loss: {valid_loss}")
+            losses.append((train_loss, valid_loss))
 
-            wandb.log({"Epoch Loss": epoch_loss, "Epoch Time": epoch_time})
+            wandb.log({"Epoch Loss": train_loss, "Epoch Time": epoch_time})
 
-        end_time = time.perf_counter()
-        print(f"Masked VAE training finished after {(end_time - start_time):.0f}s")
 
-        # TODO: look at model saving below
-        """
+            if check_masking_and_infilling and epoch % 10 == 0:
+                vae_model.eval()
+                for _ in range(4):
+                    patch_masker.test(vae_model, validationloader, True, device, f"During Training (Epoch {epoch+1} of {pt_num_epochs}) on Validation")
+
+            if save_models and (epoch % 20 == 0 or epoch == pt_num_epochs):
+                print("Saving Models")
+
+                timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")  # Current timestamp
+                final_epoch_loss = train_loss  # Replace 'epoch_loss' with the actual value
+
+                # Define model file names
+                pt_model_file = f"model_{timestamp}.pt"
+                encoder_model_file = f"encoder_model_{timestamp}.pt"
+                decoder_model_file = f"decoder_model_{timestamp}.pt"
+                epoch_loss_file = f"epoch_loss_{final_epoch_loss}.txt"  # Optionally include epoch loss in the file name
+
+                encoder_path = os.path.join(models_dir, encoder_model_file)
+                torch.save(encoder.state_dict(), encoder_path)
+                print(f"Saved {encoder_path}")
+
+                decoder_path = os.path.join(models_dir, decoder_model_file)
+                torch.save(pt_decoder.state_dict(), decoder_path)
+                print(f"Saved {decoder_path}")
+
         date_str = time.strftime("_%H.%M_%d-%m-%Y", time.localtime(time.time()))
         with open(os.path.join(mvae_dir, "pt_losses" + date_str + ".txt"), 'w') as f:
-            for i, loss in enumerate(losses):
-                f.write(f'{i}  {loss}\n')
-        print("Models saved\nFinished")
-        """
-
-        if save_models:
-            print("Saving Models")
-
-            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")  # Current timestamp
-            final_epoch_loss = epoch_loss  # Replace 'epoch_loss' with the actual value
-
-            # Define model file names
-            pt_model_file = f"model_{timestamp}.pt"
-            encoder_model_file = f"encoder_model_{timestamp}.pt"
-            decoder_model_file = f"decoder_model_{timestamp}.pt"
-            epoch_loss_file = f"epoch_loss_{final_epoch_loss}.txt"  # Optionally include epoch loss in the file name
-
-            encoder_path = os.path.join(models_dir, encoder_model_file)
-            torch.save(encoder.state_dict(), encoder_path)
-            print(f"Saved {encoder_path}")
-
-            decoder_path = os.path.join(models_dir, decoder_model_file)
-            torch.save(pt_decoder.state_dict(), decoder_path)
-            print(f"Saved {decoder_path}")
-
-        date_str = time.strftime("_%H.%M_%d-%m-%Y", time.localtime(time.time()))
-        with open("pt_losses" + date_str + ".txt", 'w') as f:
-            # TODO: maybe remove this?
+            f.write(f"================ Paramaters ================\n")
             for key, value in params.items():
-                f.write(f"{key}: {value}\n")
-            f.write("\n")
-            for i, loss in enumerate(losses):
-                f.write(f'{i + 1}  {loss}\n')
+                f.write(f"{key} = {value}\n")
+            f.write(f"================== Results =================\n")
+            f.write(f"Epoch     |     Train Loss     |     Test Loss    \n")
+            for i, (train_loss, test_loss) in enumerate(losses):
+                f.write(f'Epoch: {i + 1}, train loss = {train_loss:.5f}, test loss {test_loss:.5f}\n')
 
-        plt.plot(losses)
-        plt.title("Pre-trainer losses")
-        plt.xlabel("Epoch")
-        plt.ylabel("Loss")
-        date_str = time.strftime("_%H.%M_%d-%m-%Y", time.localtime(time.time()))
-        plt.savefig('pt_losses' + date_str + '.png')
-        plt.show()
-        plt.close()
+        if losses:
+            fig, ax = plt.subplots(figsize=(15, 5))
+            train_losses = [l[0] for l in losses]  # Ugly but works
+            test_losses = [l[1] for l in losses]
+            ax.plot(train_losses, label="Training loss", c="tab:blue")
+            ax.plot(test_losses, label="Test loss", c="tab:orange")
+            fig.suptitle("Pre-trainer losses")
+            date_str = time.strftime("_%H.%M_%d-%m-%Y", time.localtime(time.time()))
+            # TODO: think about saving
+            plt.savefig('pt_losses' + date_str + '.png')
+            plt.ylabel("Loss")
+            plt.xlabel("Epoch")
+            plt.tight_layout()
+            plt.show()
+            plt.close()
 
     if check_masking_and_infilling:
         vae_model.eval()
-        for _ in range(4):
-            patch_masker.test(vae_model, pt_dataloader, True, device)
+        examples = 5
+        for its in range(examples):
+            patch_masker.test(vae_model, validationloader, True, device, f"After Training Example {its+1} of {examples} on Validation")
 
     print("MVAE Script complete")

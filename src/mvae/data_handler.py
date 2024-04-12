@@ -109,7 +109,7 @@ class PatchMasker:
         return masked_image, masks
 
 
-    def test(self, model, loader, display, device):
+    def test(self, model, loader, display, device, plot_and_image_file_title: str):
         """
         Takes
             patch masker object, link to image file
@@ -130,6 +130,7 @@ class PatchMasker:
             plt.ioff()
         fig, axes = plt.subplots(4, num_images, figsize=(12, 9))
         time.sleep(1)
+        fig.suptitle(plot_and_image_file_title)
         for i in range(num_images):
             if num_images > 1:
                 ax0 = axes[0, i]
@@ -150,10 +151,11 @@ class PatchMasker:
             ax2.imshow(infill_images[i].cpu().permute(1, 2, 0))
             ax3.set_title('Inpainted')
             ax3.imshow(inpainted_images[i].cpu().permute(1, 2, 0))
+
+        date_str = time.strftime("%H.%M_%d-%m-%Y_", time.localtime(time.time()))
+        plt.savefig(date_str + plot_and_image_file_title + '.png')
         plt.tight_layout()
         plt.show()
-        date_str = time.strftime("_%H.%M_%d-%m-%Y", time.localtime(time.time()))
-        plt.savefig('masks' + date_str + '.png')
         plt.close()
 
 
@@ -174,6 +176,27 @@ def compute_mean_and_std_for_animals10():
     mean = channels_sum / num_batches
     std = (channels_sqd_sum / num_batches - mean ** 2) ** 0.5
     return mean, std
+
+def compute_loss(model,dataloader, patch_masker, pt_criterion, params, device):
+    '''
+    compute the average loss per batch across the dataloader
+    '''
+
+    validation_loss=0.0
+    model.eval()
+    with torch.no_grad():
+        for i, input_images in enumerate(dataloader):
+            input_images = input_images.to(device)
+            # Add random masking to the input images
+            masked_images, masks = patch_masker.mask_patches(input_images)
+
+            # Forward pass & compute the loss
+            logits = model(masked_images)
+            #outputs = torch.sigmoid(logits)  #  squash to 0-1 pixel values
+            masked_outputs = logits * masks  # dont calculate loss for masked portion
+            loss = pt_criterion(masked_outputs, masked_images) / (1.0 - params['mask_ratio'])  #  normalise to make losses comparable across different mask ratios
+            validation_loss=validation_loss+loss
+    return validation_loss.cpu().numpy()/len(dataloader)
 
 
 if __name__ == '__main__':
