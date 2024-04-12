@@ -45,7 +45,7 @@ params = {
 
     # Training
     'optimizer': "Adam",  # Adam, AdamW, SGD
-    'ft_num_epochs': 2,
+    'ft_num_epochs': 1,
     'class_weights': [1.0, 0.5, 1.5],  # pet, background, boundary
 }
 encoder, decoder = get_network(params, params['num_classes'])
@@ -116,7 +116,7 @@ params = {
 
     # Training
     'optimizer': "Adam",  # Adam, AdamW, SGD
-    'ft_num_epochs': 2,
+    'ft_num_epochs': 1,
     'class_weights': [1.0, 0.5, 1.5],  # pet, background, boundary
 }
 
@@ -296,11 +296,11 @@ if __name__ == '__main__':
             ft_decoder_model_file = f"ft_decoder_model_{timestamp}.pt"
             # ft_epoch_loss_file = f"ft_epoch_loss_{final_epoch_loss}.txt"  # Optionally include epoch loss in the file name
 
-            encoder_path = os.path.join(models_dir, ft_encoder_model_file)
+            encoder_path = os.path.join(ft_models_dir, ft_encoder_model_file)
             torch.save(encoder.state_dict(), encoder_path)
             print(f"Saved {encoder_path}")
 
-            decoder_path = os.path.join(models_dir, ft_decoder_model_file)
+            decoder_path = os.path.join(ft_models_dir, ft_decoder_model_file)
             torch.save(decoder.state_dict(), decoder_path)
             print(f"Saved {decoder_path}")
 
