@@ -24,6 +24,7 @@ from src.shared_network_architectures.networks_pt import (
 )
 from src.utils.IoUMetric import IoULoss
 
+<<<<<<< HEAD
 # COMMENTING OUT CODE THAT IS ONLY FOR RUNNING FROM CMD LINE ##########
 # params = {
 #     # Image
@@ -63,6 +64,46 @@ from src.utils.IoUMetric import IoULoss
 #           f"\nrepr(../models/ft_decoder_model.pt).")
 #     encoder.load_state_dict(torch.load('../models/ft_encoder_model.pt'), strict=False)
 #     decoder.load_state_dict(torch.load('../models/ft_decoder_model.pt'), strict=False)
+=======
+params = {
+    # Image
+    "image_size": 224,  # number of pixels square
+    "num_channels": 3,  # RGB image -> 3 channels
+    'num_classes': 3,
+
+    # Network
+    'network': "CNN",  # CNN, ViT, Linear
+    'num_features': 768,  # 768
+    'hidden_dim': 2048,
+    "vit_num_layers": 4,  # 12ViT parameter
+    "vit_num_heads": 8,  # 8 ViT parameter
+    "vit_mlp_dim": 2048,  # 1024 ViT parameter#
+
+    # hyper-parameters
+    "ft_batch_size": 32,
+    "learning_rate": 0.001,
+    "momentum": 0.9,
+
+    # Training
+    'optimizer': "Adam",  # Adam, AdamW, SGD
+    'ft_num_epochs': 2,
+    'class_weights': [1.0, 0.5, 1.5],  # pet, background, boundary
+}
+encoder, decoder = get_network(params, params['num_classes'])
+
+if len(sys.argv) > 1:
+    BUILD_BASELINE = sys.argv[1] == 'BUILD_BASELINE'
+    if BUILD_BASELINE:
+        print(f'\n\nYOU HAVE SELECTED TO BUILD A BASELINE MODEL, TRAINING ON OXFORD-3 DATASET ONLY')
+        initialise_weights(encoder)
+        initialise_weights(encoder)
+else:
+    print(f'\n\nYOU HAVE SELECTED TO FINE-TUNE A PRE-TRAINED MODEL'
+          f"\n\n ... EXPECTING TO FIND PRETRAINED MODEL AT: \nrepr(../models/ft_encoder_model.pt) and "
+          f"\nrepr(../models/ft_decoder_model.pt).")
+    encoder.load_state_dict(torch.load('../models/ft_encoder_model.pt'), strict=False)
+    decoder.load_state_dict(torch.load('../models/ft_decoder_model.pt'), strict=False)
+>>>>>>> 17130f546d2bd9d2aea644372a79b0ede5476e49
 
 # COMMENTING OUT CODE THAT IS ONLY FOR RUNNING FROM CMD LINE ##########
 
@@ -118,7 +159,7 @@ params = {
 
     # Training
     'optimizer': "Adam",  # Adam, AdamW, SGD
-    'ft_num_epochs': 5,
+    'ft_num_epochs': 2,
     'class_weights': [1.0, 0.5, 1.5],  # pet, background, boundary
 }
 
@@ -138,6 +179,19 @@ if __name__ == '__main__':
     np.random.seed(42)
     random.seed(42)
 
+
+    if not os.path.exists(models_dir):
+        os.mkdir(models_dir)
+    if not os.path.exists(outputs_dir):
+        os.mkdir(outputs_dir)
+
+    print("Creating Output Directories...")
+    date_str = time.strftime("%Y%m%d-%H%M%S", time.localtime(time.time()))
+    ft_models_dir = os.path.join(models_dir, "ft_" + date_str)
+    os.mkdir(ft_models_dir)
+    ft_output_dir = os.path.join(outputs_dir,"ft_"+date_str)
+    os.mkdir(ft_output_dir)
+
     device = get_optimal_device()
 
     # initialize model: encoder and decoder
@@ -145,7 +199,7 @@ if __name__ == '__main__':
 
     # ################################################################# TODO: REMOVE FROM THIS LINE
     if pre_training_model_encoder:
-        encoder_path = os.path.join(models_dir, pre_training_model_encoder)
+        encoder_path = os.path.join(ft_models_dir, pre_training_model_encoder)
         assert os.path.exists(encoder_path), \
             f"Could not find {pre_training_model_encoder} in {models_dir}"
         encoder.load_state_dict(torch.load(encoder_path), strict=False)
@@ -153,7 +207,7 @@ if __name__ == '__main__':
         print(f"Initialising encoder randomly")
         initialise_weights(encoder)
     if pre_training_model_decoder:
-        decoder_path = os.path.join(models_dir, pre_training_model_decoder)
+        decoder_path = os.path.join(ft_models_dir, pre_training_model_decoder)
         assert os.path.exists(decoder_path), \
             f"Could not find {pre_training_model_decoder} in {models_dir}"
         decoder.load_state_dict(torch.load(decoder_path), strict=False)
@@ -214,7 +268,7 @@ if __name__ == '__main__':
 
         # test everything is working
         print("View images, labels and as yet unlearned model output before starting")
-        view_training(segment_model, train_loader, True, device, plot_and_image_file_title="Before Training")
+        view_training(segment_model, train_loader, True, device, ft_output_dir, plot_and_image_file_title="Before Training")
         print(f"Starting overlap: {overlap(segment_model, train_loader, device):.3f}")
 
         # Training loop
@@ -267,7 +321,7 @@ if __name__ == '__main__':
                 f"Epoch [{epoch + 1}/{ft_num_epochs}] completed in {(epoch_end_time - epoch_start_time):.0f}s, train Loss: {running_train_loss / len(train_loader):.4f} "
                 f"Test Loss: {running_test_loss / len(test_loader):.4f}")
 
-            view_training(segment_model, test_loader, True, device, plot_and_image_file_title=f"During Training (epoch {epoch + 1} of {ft_num_epochs}) on Test")
+            view_training(segment_model, test_loader, True, device, ft_output_dir, plot_and_image_file_title=f"During Training (epoch {epoch + 1} of {ft_num_epochs}) on Test")
 
         end_time = time.perf_counter()
         print(f"Segmentation training finished after {(end_time - start_time):.0f}s")
@@ -320,13 +374,13 @@ if __name__ == '__main__':
             # plt.show()
             plt.close()
 
-        view_training(segment_model, train_loader, True, device, plot_and_image_file_title=f"After Training ({ft_num_epochs} epochs) on Test")
+        view_training(segment_model, train_loader, True, device, ft_output_dir,plot_and_image_file_title=f"After Training ({ft_num_epochs} epochs) on Test")
 
     # display inference on test set
     if check_semantic_segmentation:
         example_range = 5
         for its in range(example_range):
-            view_training(segment_model, test_loader, True, device,  plot_and_image_file_title=f"After Training ({ft_num_epochs} epochs) Example {its+1} of {example_range} on Test")
+            view_training(segment_model, test_loader, True, device, ft_output_dir,  plot_and_image_file_title=f"After Training ({ft_num_epochs} epochs) Example {its+1} of {example_range} on Test")
             print(f"Sample test set overlap: {overlap(segment_model, test_loader, device):.3f}")
 
     print("Fine-tuning script complete")
