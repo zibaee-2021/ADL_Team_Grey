@@ -9,7 +9,7 @@ from PIL import Image
 from matplotlib import pyplot as plt
 from torch.utils.data import Dataset, DataLoader
 from torchvision.transforms import transforms
-from src.utils.paths import animals_10_dir
+from src.utils.paths import animals_10_dir, mvae_dir
 
 
 class Animals10Dataset(Dataset):
@@ -153,7 +153,7 @@ class PatchMasker:
             ax3.imshow(inpainted_images[i].cpu().permute(1, 2, 0))
 
         date_str = time.strftime("%H.%M_%d-%m-%Y_", time.localtime(time.time()))
-        plt.savefig(date_str + plot_and_image_file_title + '.png')
+        plt.savefig(os.path.join(mvae_dir, date_str + plot_and_image_file_title + '.png'))
         plt.tight_layout()
         # plt.show()
         plt.close()

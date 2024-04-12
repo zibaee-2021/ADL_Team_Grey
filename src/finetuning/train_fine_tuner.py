@@ -310,7 +310,7 @@ if __name__ == '__main__':
             fig.suptitle("Fine-tuner losses")
             date_str = time.strftime("_%H.%M_%d-%m-%Y", time.localtime(time.time()))
             # TODO: think about saving
-            plt.savefig('ft_losses' + date_str + '.png')
+            plt.savefig(os.path.join(fine_tuning_dir, 'ft_losses' + date_str + '.png'))
             plt.ylabel("Loss")
             plt.xlabel("Epoch")
             plt.tight_layout()

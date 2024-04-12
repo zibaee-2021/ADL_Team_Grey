@@ -265,7 +265,7 @@ if __name__ == '__main__':
             fig.suptitle("Pre-trainer losses")
             date_str = time.strftime("_%H.%M_%d-%m-%Y", time.localtime(time.time()))
             # TODO: think about saving
-            plt.savefig('pt_losses' + date_str + '.png')
+            plt.savefig(os.path.join(mvae_dir,'pt_losses' + date_str + '.png'))
             plt.ylabel("Loss")
             plt.xlabel("Epoch")
             plt.tight_layout()

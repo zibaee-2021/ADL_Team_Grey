@@ -166,7 +166,7 @@ def view_training(model, loader: DataLoader, display:bool, device: torch.device,
         ax3.imshow(output_labels[i])
     plt.tight_layout()
     date_str = time.strftime("%H.%M_%d-%m-%Y_", time.localtime(time.time()))
-    plt.savefig(date_str + plot_and_image_file_title + '.png')
+    plt.savefig(os.path,join(fine_tuning_dir, date_str + plot_and_image_file_title + '.png'))
     # plt.show()
     plt.close()
 
