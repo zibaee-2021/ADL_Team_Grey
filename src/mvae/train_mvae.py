@@ -188,12 +188,10 @@ if __name__ == '__main__':
                 # Add random masking to the input images
                 masked_images, masks = patch_masker.mask_patches(input_images)
 
-                # Forward pass & compute the loss
                 logits = vae_model(masked_images)
-                outputs = torch.sigmoid(logits)  #  squash to 0-1 pixel values
-                masked_outputs = logits * masks  # dont calculate loss for masked portion
-                loss = pt_criterion(masked_outputs, masked_images) / (1.0 - params[
-                    'mask_ratio'])  #  normalise to make losses comparable across different mask ratios
+                masked_outputs = torch.sigmoid(logits) * masks  # dont calculate loss for masked portion
+                loss = pt_criterion(masked_outputs, masked_images) / (1.0 - params['mask_ratio'])
+                # normalise to make losses comparable across different mask ratios
 
                 # Backward pass and optimization
                 pt_optimizer.zero_grad()
