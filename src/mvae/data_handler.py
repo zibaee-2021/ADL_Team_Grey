@@ -9,7 +9,63 @@ from PIL import Image
 from matplotlib import pyplot as plt
 from torch.utils.data import Dataset, DataLoader
 from torchvision.transforms import transforms
-from src.utils.paths import animals_10_dir
+from src.utils.paths import animals_10_dir, imagenet_dir
+
+
+class Reduced_ImageNetDataset(Dataset):
+    """
+    Loads and cleans up images in Animals-10 dataset
+    """
+    def __init__(self, root_dir, target_size=(224, 224)):
+        self.root_dir = root_dir
+        self.target_size = target_size
+        self.transform = transforms.Compose([
+                transforms.ToTensor(),
+                transforms.Resize(self.target_size),
+                # transforms.ToTensor(),
+                #transforms.Normalize(
+                #    mean=[0.5181, 0.5007, 0.4129],
+                #    std=[0.2685, 0.2637, 0.2809])
+                # mean=[0.45, 0.5, 0.55],
+                # std=[0.2, 0.2, 0.2]),  # normalising helps convergence
+        ])
+
+        # Get all paths in the root directory
+        all_paths = [os.path.join(root_dir, f) for f in os.listdir(self.root_dir)]
+
+        # Filter out directories, keep only files
+        self.images = sorted([f for f in all_paths if os.path.isfile(f) and f.endswith('.png')])
+
+        # If code above doesn't find the files, the code below will.
+        # Assume original dir structure i.e. `raw-img/**/<images files>`
+        if self.images is None or self.images == []:
+            img_dir = os.path.join(root_dir, '**')
+            accepted_files = []
+            accepted_fs = [os.path.join(img_dir, '*.jpg'),
+                              os.path.join(img_dir, '*.jpeg'),
+                              os.path.join(img_dir, '*.png')]
+            for accepted_f in accepted_fs:
+                accepted_files.extend(glob.glob(accepted_f, recursive=False))
+            self.images = accepted_files
+
+        print(f"Number of images: {len(self.images)}")  # Add this line
+
+    def __len__(self):
+        return len(self.images)
+
+    def __getitem__(self, idx):
+        img_path = self.images[idx]
+        img = Image.open(img_path)
+
+        # Ensure image has 3 channels
+        if img.mode != 'RGB':
+            img = img.convert('RGB')
+
+        img = img.resize(self.target_size)  # Resize the image
+        if self.transform:
+            img = self.transform(img)
+
+        return img
 
 
 class Animals10Dataset(Dataset):
@@ -34,7 +90,7 @@ class Animals10Dataset(Dataset):
         all_paths = [os.path.join(root_dir, f) for f in os.listdir(self.root_dir)]
 
         # Filter out directories, keep only files
-        self.images = sorted([f for f in all_paths if os.path.isfile(f)])
+        self.images = sorted([f for f in all_paths if os.path.isfile(f) and f.endswith('.png')])
 
         # If code above doesn't find the files, the code below will.
         # Assume original dir structure i.e. `raw-img/**/<images files>`
@@ -177,6 +233,7 @@ def compute_mean_and_std_for_animals10():
     std = (channels_sqd_sum / num_batches - mean ** 2) ** 0.5
     return mean, std
 
+
 def compute_loss(model,dataloader, patch_masker, pt_criterion, params, device):
     '''
     compute the average loss per batch across the dataloader
@@ -189,11 +246,10 @@ def compute_loss(model,dataloader, patch_masker, pt_criterion, params, device):
             input_images = input_images.to(device)
             # Add random masking to the input images
             masked_images, masks = patch_masker.mask_patches(input_images)
-
             # Forward pass & compute the loss
             logits = model(masked_images)
-            outputs = torch.sigmoid(logits)  #  squash to 0-1 pixel values
-            masked_outputs = logits * masks  # dont calculate loss for masked portion
+            # squash to 0-1 pixel values
+            masked_outputs = torch.sigmoid(logits) * masks  # dont calculate loss for masked portion
             loss = pt_criterion(masked_outputs, masked_images) / (1.0 - params['mask_ratio'])  #  normalise to make losses comparable across different mask ratios
             validation_loss=validation_loss+loss
     return validation_loss.cpu().numpy()/len(dataloader)
