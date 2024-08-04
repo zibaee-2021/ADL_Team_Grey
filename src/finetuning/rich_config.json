@@ -1,0 +1,23 @@
+{
+    "dataset_name": "oxford_iiit_pet",
+    "image_size": 224,
+    "num_channels": 3,
+    "num_classes": 3,
+    "patch_size": 14,
+    "network": "CNN",
+    "num_features": 768,
+    "hidden_dim": 2048,
+    "vit_num_layers": 4,
+    "vit_num_heads": 8,
+    "vit_mlp_dim": 2048,
+    "ft_batch_size": 64,
+    "learning_rate": 0.0001,
+    "momentum": 0.9,
+    "optimizer": "Adam",
+    "ft_num_epochs": 50,
+    "class_weights": [
+      1.0,
+      0.5,
+      1.5
+    ]
+  }

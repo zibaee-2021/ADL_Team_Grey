@@ -9,7 +9,7 @@ from PIL import Image
 from matplotlib import pyplot as plt
 from torch.utils.data import Dataset, DataLoader
 from torchvision.transforms import transforms
-from src.utils.paths import animals_10_dir, imagenet_dir
+from utils.paths import animals_10_dir, imagenet_dir
 
 
 class Reduced_ImageNetDataset(Dataset):
@@ -20,15 +20,10 @@ class Reduced_ImageNetDataset(Dataset):
         self.root_dir = root_dir
         self.target_size = target_size
         self.transform = transforms.Compose([
-                transforms.ToTensor(),
-                transforms.Resize(self.target_size),
-                # transforms.ToTensor(),
-                #transforms.Normalize(
-                #    mean=[0.5181, 0.5007, 0.4129],
-                #    std=[0.2685, 0.2637, 0.2809])
-                # mean=[0.45, 0.5, 0.55],
-                # std=[0.2, 0.2, 0.2]),  # normalising helps convergence
-        ])
+            transforms.ToTensor(),
+            transforms.Resize(self.target_size),
+            transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])  # Normalize
+            ])
 
         # Get all paths in the root directory
         all_paths = [os.path.join(root_dir, f) for f in os.listdir(self.root_dir)]
@@ -76,15 +71,10 @@ class Animals10Dataset(Dataset):
         self.root_dir = root_dir
         self.target_size = target_size
         self.transform = transforms.Compose([
-                transforms.ToTensor(),
-                transforms.Resize(self.target_size),
-                # transforms.ToTensor(),
-                #transforms.Normalize(
-                #    mean=[0.5181, 0.5007, 0.4129],
-                #    std=[0.2685, 0.2637, 0.2809])
-                # mean=[0.45, 0.5, 0.55],
-                # std=[0.2, 0.2, 0.2]),  # normalising helps convergence
-        ])
+            transforms.ToTensor(),
+            transforms.Resize(self.target_size),
+            transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])  # Normalize
+            ])
 
         # Get all paths in the root directory
         all_paths = [os.path.join(root_dir, f) for f in os.listdir(self.root_dir)]
@@ -164,6 +154,56 @@ class PatchMasker:
 
         return masked_image, masks
 
+    def rich_test(self, model, loader, device):
+        """
+        Takes
+            patch masker object, link to image file
+        Displays
+            original and patched image
+        Returns
+            input image, masked image tensor
+        """
+        images = next(iter(loader))
+        images = images.to(device)
+        masked_images, masks = self.mask_patches(images[0:1])
+
+        model.eval()
+        with torch.no_grad():
+            infill_images = model(masked_images.to(device))
+            inpainted_images = masked_images.to(device) + infill_images.to(device) * (masked_images.to(device) == 0).float()
+
+        # Denormalize images
+        mean = torch.tensor([0.485, 0.456, 0.406]).view(1, 3, 1, 1).to(device)
+        std = torch.tensor([0.229, 0.224, 0.225]).view(1, 3, 1, 1).to(device)
+        images = images * std + mean
+        masked_images = masked_images * std + mean
+        infill_images = infill_images * std + mean
+        inpainted_images = inpainted_images * std + mean
+
+        # Move tensors back to CPU for plotting
+        images = images.cpu()
+        masked_images = masked_images.cpu()
+        infill_images = infill_images.cpu()
+        inpainted_images = inpainted_images.cpu()
+
+        fig, axes = plt.subplots(1, 4, figsize=(12, 3))
+
+        axes[0].axis('off')
+        axes[0].set_title('Image')
+        axes[0].imshow(images[0].permute(1, 2, 0))
+
+        axes[1].set_title('Masked Image')
+        axes[1].imshow(masked_images[0].permute(1, 2, 0))
+
+        axes[2].set_title('Infill')
+        axes[2].imshow(infill_images[0].permute(1, 2, 0))
+
+        axes[3].set_title('Inpainted')
+        axes[3].imshow(inpainted_images[0].permute(1, 2, 0))
+
+        plt.tight_layout()
+        return plt
+
 
     def test(self, model, loader, display, device, directory, plot_and_image_file_title: str):
         """
@@ -207,19 +247,15 @@ class PatchMasker:
             ax2.imshow(infill_images[i].cpu().permute(1, 2, 0))
             ax3.set_title('Inpainted')
             ax3.imshow(inpainted_images[i].cpu().permute(1, 2, 0))
-
-        date_str = time.strftime("%H.%M_%d-%m-%Y_", time.localtime(time.time()))
-        plt.savefig(os.path.join(directory, date_str + plot_and_image_file_title + '.png'))
         plt.tight_layout()
-        # plt.show()
-        plt.close()
+        return plt
 
 
 def compute_mean_and_std_for_animals10():
     # From the unnormalised Animals-10, this function calculates a mean of tensor([0.5178, 0.5003, 0.4127]) and
     # standard deviation of tensor([0.2684, 0.2635, 0.2807])
 
-    animals_ds = Animals10Dataset(root_dir=os.path.join(animals_10_dir, 'raw-img'))
+    animals_ds = Animals10Dataset(imagenet_dir)
     animals_dataloader = DataLoader(animals_ds, batch_size=512, shuffle=True)
 
     channels_sum, channels_sqd_sum, num_batches = 0, 0, 0

@@ -1,4 +1,12 @@
 # GROUP19_COMP0197
+import sys
+import os
+print(sys.path)
+
+script_dir = os.path.dirname(os.path.realpath(__file__))
+parent_dir = os.path.dirname(script_dir)
+sys.path.append(parent_dir)
+
 import torch
 from torch import nn
 from torch.utils.data import DataLoader
@@ -8,23 +16,20 @@ import numpy as np
 import matplotlib.pyplot as plt
 import wandb
 from datetime import datetime
-from src.utils.IoUMetric import IoULoss
+from utils.IoUMetric import IoULoss
 
-# our code
-from src.utils.paths import *
-from src.utils.device import get_optimal_device
-from src.utils.model_init import initialise_weights
-from src.utils.optimizer import get_optimizer
-from src.shared_network_architectures.networks_pt import (
+from utils.paths import *
+from utils.device import get_optimal_device
+from utils.model_init import initialise_weights
+from utils.optimizer import get_optimizer
+from shared_network_architectures.networks_pt import (
     get_network,
     SegmentModel
 )
-from src.mvae.data_handler import (
+from mvae.data_handler import (
     Animals10Dataset,
-    Reduced_ImageNetDataset,
     PatchMasker, compute_loss
 )
-
 
 ## Control
 ## Training
@@ -33,7 +38,6 @@ check_masking_and_infilling = True
 report_every = 100
 save_models = run_pretraining_and_save  # If training, then save!
 load_models = not run_pretraining_and_save  # Don't load if training but do if not
-
 
 ## Testing
 #TODO: need to make it loads models with dates....
@@ -61,7 +65,7 @@ params = {
     "vit_mlp_dim": 2048,  # 1024 ViT parameter
 
     # Hyper paramaters
-    'pt_batch_size': 64,
+    'pt_batch_size': 32,
     'mask_ratio': 0.5,
     'learning_rate': 0.0001,
     'pt_momentum': 0.9,  # not used in Adam
@@ -79,12 +83,12 @@ pt_momentum = params['pt_momentum']
 pt_optimizer = params['optimizer']
 
 # file paths
-data_dir = os.path.join(datasets_dir,"imagenet-1k-resized/")
+data_dir = os.path.join(datasets_dir)
+
+epochs_to_save_models = [1, 3, 15, 63, 127]
 
 encoder_path = None
 decoder_path = None
-
-save_model_epoch = [0, 3, 5, 63, 127]
 
 if __name__ == '__main__':
 
@@ -118,12 +122,11 @@ if __name__ == '__main__':
     params['num_masks'] = num_masks
 
     # Keep track of params if using wandb:
-    wandb.init(project="final_runs", entity="adl_team_grey", config=params)
+    wandb.init(name = "128_imagenet_pretrain", project="final_runs", entity="adl_team_grey", config=params)
 
     # dataloader and model definition
     # load and pre-process Animals-10 dataset and dataloader & transform to normalize the data
-    pt_dataset = Animals10Dataset(root_dir=os.path.join(animals_10_dir, "raw-img"))
-
+    pt_dataset = Animals10Dataset(imagenet_dir)
     # Split the training dataset into train_set, val_set
     train_split_size = int(len(pt_dataset) // (100 / 95))
     valid_split_size = int(len(pt_dataset) - train_split_size)
@@ -134,12 +137,12 @@ if __name__ == '__main__':
                              batch_size=params['pt_batch_size'],
                              shuffle=True,
                              drop_last=True,  # drop last batch so that all batches are complete
-                             num_workers=2)
+                             num_workers=1)
     validationloader = DataLoader(val_set,
                                   batch_size=params['pt_batch_size'],
                                   shuffle=True,  # shuffle so it can demonstrate different images
                                   drop_last=True,  # drop last batch so that all batches are complete
-                                  num_workers=2)
+                                  num_workers=1)
 
     # Instantiate the encoder & decoder for color images, patchmaker and model (encoder/decoder)
     encoder, pt_decoder = get_network(params, params['num_channels'])
@@ -220,14 +223,14 @@ if __name__ == '__main__':
                 f"Epoch [{epoch + 1}/{pt_num_epochs}] completed in {(epoch_time):.0f}s, Training loss: {train_loss:.4f}, Validation loss: {valid_loss}")
             losses.append((train_loss, valid_loss))
 
-            wandb.log({"Epoch Loss": train_loss, "Validation Loss": valid_loss, "Epoch Time": epoch_time})
+            wandb.log({"Epoch Loss": train_loss, "Validation Loss": valid_loss,"Epoch Time": epoch_time})
 
             if check_masking_and_infilling and epoch % 10 == 0:
                 vae_model.eval()
                 for _ in range(4):
                     patch_masker.test(vae_model, validationloader, True, device, pt_output_dir, f"During Training (Epoch {epoch+1} of {pt_num_epochs}) on Validation")
 
-            if save_models and (epoch in save_model_epoch or epoch == pt_num_epochs):
+            if save_models and (epoch in epochs_to_save_models or epoch == pt_num_epochs):
                 print("Saving Models")
 
                 timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")  # Current timestamp
@@ -282,4 +285,4 @@ if __name__ == '__main__':
         for its in range(examples):
             patch_masker.test(vae_model, validationloader, True, device, pt_output_dir,f"After Training Example {its+1} of {examples} on Validation")
 
-    print("MVAE Script complete!")
+    print("MVAE Script complete")

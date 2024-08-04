@@ -1,0 +1,22 @@
+{
+    "image_size": 224,
+    "num_channels": 3,
+    "num_classes": 3,
+    "patch_size": 14,
+    "network": "CNN",
+    "num_features": 256,
+    "hidden_dim": 520,
+    "vit_num_layers": 16,
+    "vit_num_heads": 10,
+    "vit_mlp_dim": 2048,
+    "ft_batch_size": 64,
+    "learning_rate": 0.001,
+    "momentum": 0.9,
+    "optimizer": "Adam",
+    "ft_num_epochs": 100,
+    "class_weights": [
+      1.0,
+      0.5,
+      1.5
+    ]
+  }

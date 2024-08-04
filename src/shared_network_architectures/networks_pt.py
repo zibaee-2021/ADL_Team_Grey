@@ -302,7 +302,6 @@ class CNNDecoder(nn.Module):
         x = self.bnc2(self.relu(self.conv2(x))) # output 56
         x = self.bnc3(self.relu(self.conv3(x))) # output 112
         x = self.bnc4(self.conv4(x)) #output 224 * 224
-        #x = torch.softmax(x, dim=1) # normalise to [0,1]
 
         return x # output batch * output_channels * image_size * image_size
 

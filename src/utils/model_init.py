@@ -16,3 +16,5 @@ def initialise_weights(model):
         elif 'bias' in name:
             nn.init.constant_(param, 0.0)  # Initialize biases to zero
 
+    return model
+

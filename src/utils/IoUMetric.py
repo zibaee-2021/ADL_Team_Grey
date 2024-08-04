@@ -1,7 +1,7 @@
 # GROUP19_COMP0197
 import torch
 from torch import nn
-from src.utils import misc
+from utils import misc
 
 
 class IoULoss(nn.Module):

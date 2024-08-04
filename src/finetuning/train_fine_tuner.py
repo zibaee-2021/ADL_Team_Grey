@@ -1,28 +1,42 @@
 # GROUP19_COMP0197
-# External packages
+# GROUP19_COMP0197
 import sys
-import time
-from datetime import datetime
-import random
+import os
+import torch
+from torch.utils.data import random_split
+print(sys.path)
+
+script_dir = os.path.dirname(os.path.realpath(__file__))
+parent_dir = os.path.dirname(script_dir)
+sys.path.append(parent_dir)
+
+# External packages
 from matplotlib import pyplot as plt
 import numpy as np
 import torch
 from torchvision import datasets, transforms
 
+import sys
+import time
+from datetime import datetime
+import random
+
 # our code
-from src.utils.model_init import initialise_weights
-from src.utils.optimizer import get_optimizer
-from src.utils.paths import *
-from src.utils.device import get_optimal_device
-from src.finetuning.data_handler import (
+from utils.model_init import initialise_weights
+from utils.optimizer import get_optimizer
+from utils.paths import *
+from utils.device import get_optimal_device
+from finetuning.data_handler import (
     view_training,
     OxfordPetDataset, overlap
 )
-from src.shared_network_architectures.networks_pt import (
+from shared_network_architectures.networks_pt import (
     get_network,
     SegmentModel
 )
-from src.utils.IoUMetric import IoULoss
+from utils.IoUMetric import IoULoss
+
+import wandb
 
 # COMMENTING OUT CODE THAT IS ONLY FOR RUNNING FROM CMD LINE ##########
 # params = {
@@ -78,8 +92,8 @@ from src.utils.IoUMetric import IoULoss
 ## Training
 check_oxford_batch = True
 run_fine_tuning = True  # TODO: REMOVE THIS FLAG (AND UPDATE BELOW)
-pre_training_model_encoder = None  # set these to the pretrain models you want to use
-pre_training_model_decoder = None
+pre_training_model_encoder = "pt_20240414-084255/encoder_model_20240414_101950.pt"
+pre_training_model_decoder = False
 check_semantic_segmentation = True
 save_models = run_fine_tuning
 load_models = not run_fine_tuning
@@ -105,11 +119,11 @@ params = {
 
     # Network
     'network': "CNN",  # CNN, ViT, Linear
-    'num_features': 768,  # 768
-    'hidden_dim': 2048,
-    "vit_num_layers": 4,  # 12ViT parameter
+    'num_features': 32,  # 768
+    'hidden_dim': 256,
+    "vit_num_layers": 8,  # 12ViT parameter
     "vit_num_heads": 8,  # 8 ViT parameter
-    "vit_mlp_dim": 2048,  # 1024 ViT parameter#
+    "vit_mlp_dim": 1024,  # 1024 ViT parameter#
 
     # hyper-parameters
     "ft_batch_size": 32,
@@ -118,7 +132,7 @@ params = {
 
     # Training
     'optimizer': "Adam",  # Adam, AdamW, SGD
-    'ft_num_epochs': 1,
+    'ft_num_epochs': 20,
     'class_weights': [1.0, 0.5, 1.5],  # pet, background, boundary
 }
 
@@ -126,6 +140,8 @@ params = {
 ft_batch_size = params["ft_batch_size"]
 ft_num_epochs = params["ft_num_epochs"]
 ft_lr = params["learning_rate"]
+
+wandb.init(name="end2end_num_features_64", project = "testing_ft_features", entity="adl_team_grey", config=params)
 
 # file paths
 oxford_path = oxford_3_dir
@@ -137,7 +153,6 @@ if __name__ == '__main__':
     torch.manual_seed(42)
     np.random.seed(42)
     random.seed(42)
-
 
     if not os.path.exists(models_dir):
         os.mkdir(models_dir)
@@ -158,15 +173,18 @@ if __name__ == '__main__':
 
     # ################################################################# TODO: REMOVE FROM THIS LINE
     if pre_training_model_encoder:
-        encoder_path = os.path.join(ft_models_dir, pre_training_model_encoder)
+        encoder_path = "/cs/student/projects1/aibh/rwardle/second_term_projects/ADL_Team_Grey/src/models/pt_20240414-084255/encoder_model_20240414_092935.pt"
         assert os.path.exists(encoder_path), \
-            f"Could not find {pre_training_model_encoder} in {models_dir}"
+            f"Could not find {encoder_path} in {models_dir}"
+        state_dict = torch.load(encoder_path)
+        print(state_dict.keys())
         encoder.load_state_dict(torch.load(encoder_path), strict=False)
     else:
         print(f"Initialising encoder randomly")
         initialise_weights(encoder)
+
     if pre_training_model_decoder:
-        decoder_path = os.path.join(ft_models_dir, pre_training_model_decoder)
+        decoder_path = "/cs/student/projects1/aibh/rwardle/second_term_projects/ADL_Team_Grey/src/models/pt_20240414-084255/decoder_model_20240414_092935.pt"
         assert os.path.exists(decoder_path), \
             f"Could not find {pre_training_model_decoder} in {models_dir}"
         decoder.load_state_dict(torch.load(decoder_path), strict=False)
@@ -200,6 +218,20 @@ if __name__ == '__main__':
 
     # # Initialize dataLoader
     # TODO: do we want to split train into test / val?
+
+    # Define the size of your validation set
+    val_size = int(0.2 * len(train_dataset))  # 20% of the training data
+    train_size = len(train_dataset) - val_size
+
+    # Split the training data into training and validation sets
+    train_dataset, val_dataset = random_split(train_dataset, [train_size, val_size])
+
+    # Create DataLoaders for the training and validation sets
+    oxford_train_dataset = OxfordPetDataset(train_dataset, params)
+    train_loader = torch.utils.data.DataLoader(oxford_train_dataset, batch_size=params['ft_batch_size'], shuffle=True)
+
+    oxford_val_dataset = OxfordPetDataset(val_dataset, params)
+    val_loader = torch.utils.data.DataLoader(oxford_val_dataset, batch_size=params['ft_batch_size'], shuffle=False)
     oxford_3_train_dataset = OxfordPetDataset(train_dataset, params)
     train_loader = torch.utils.data.DataLoader(oxford_3_train_dataset, batch_size=ft_batch_size, shuffle=True)
     oxford_3_test_dataloset = OxfordPetDataset(test_dataset, params)
@@ -227,7 +259,8 @@ if __name__ == '__main__':
 
         # test everything is working
         print("View images, labels and as yet unlearned model output before starting")
-        view_training(segment_model, train_loader, True, device, ft_output_dir, plot_and_image_file_title="Before Training")
+        preplot = view_training(segment_model, train_loader, True, device, ft_output_dir, plot_and_image_file_title="Before Training")
+        wandb.log({"Before Training": preplot})
         print(f"Starting overlap: {overlap(segment_model, train_loader, device):.3f}")
 
         # Training loop
@@ -255,6 +288,7 @@ if __name__ == '__main__':
 
                 if its % report_every == (report_every - 1):  # print every report_every mini-batches
                     curr_time = time.perf_counter() - start_time
+                    wandb.log({"train_loss": average_loss, "time": curr_time})
                     print(
                         'Epoch [%d / %d],  %d image minibatch [%4d / %4d], cumulative running loss: %.4f, average loss: %.4f, uptime: %.2f' % (
                             epoch + 1, ft_num_epochs, ft_batch_size, its + 1, len(train_loader),
@@ -274,6 +308,8 @@ if __name__ == '__main__':
                     outputs = segment_model(images)
                     loss = criterion(outputs, labels)
                     running_test_loss += loss.detach().cpu().item()
+
+                    wandb.log({"test_loss": running_test_loss / len(test_loader)})
 
             losses.append((running_train_loss / len(train_loader), running_test_loss / len(test_loader)))
             print(

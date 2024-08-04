@@ -8,7 +8,7 @@ from torch.utils.data import DataLoader, Dataset
 from PIL import Image
 from matplotlib import pyplot as plt
 
-from src.utils.paths import fine_tuning_dir
+from utils.paths import fine_tuning_dir
 
 #
 # def view_batch(data_loader):
@@ -124,51 +124,63 @@ def one_hot_to_tensor(one_hot):
 #
 #         return train_loader, val_loader, test_loader
 
-def view_training(model, loader: DataLoader, display:bool, device: torch.device, directory, plot_and_image_file_title:str):
-    # Note: plot_and_image_file_title cannot contain things like / , " :
-    images, labels = next(iter(loader))
+def view_training(model, loader: DataLoader, display: bool, device: torch.device):
+    """
+    Visualizes the training of a model.
+
+    Args:
+        model: The model being trained.
+        loader (DataLoader): The DataLoader for the training data.
+        display (bool): Whether to display the plot.
+        device (torch.device): The device the model is running on.
+        directory: The directory to save the plot.
+        plot_and_image_file_title (str): The title of the plot.
+
+    Returns:
+        The plot as a matplotlib object.
+    """
+    try:
+        images, labels = next(iter(loader))
+    except StopIteration:
+        raise ValueError("The DataLoader is empty.")
+
     num_images = min(images.size(0),4)
     model.eval()
+
     with torch.no_grad():
         outputs = model(images.to(device))
-        outputs = torch.sigmoid(outputs.cpu().detach())
+        outputs = torch.sigmoid(outputs).cpu()
         images, labels = images.cpu(), labels.cpu()
-        output_labels = torch.argmax(outputs.cpu().detach(), dim=1)
+        output_labels = torch.argmax(outputs, dim=1)
 
-    if display is False:
+    if not display:
         plt.ioff()
 
     fig, axes = plt.subplots(4, num_images, figsize=(3*num_images,8))
-    fig.suptitle(plot_and_image_file_title)
     time.sleep(1)
-    for i in range(num_images):
-        if num_images>1:
-            ax0 = axes[0,i]
-            ax1 = axes[1,i]
-            ax2 = axes[2,i]
-            ax3 = axes[3,i]
-        else:
-            ax0 = axes[0]
-            ax1 = axes[1]
-            ax2 = axes[2]
-            ax3 = axes[3]
-        ax0.axis('off')
-        ax0.set_title('Image')
-        ax0.imshow(images[i].permute(1,2,0))
-        ax1.axis('off')
-        ax1.set_title('Label')
-        ax1.imshow(labels[i].permute(1,2,0))
-        ax2.axis('off')
-        ax2.set_title('Output (prob)')
-        ax2.imshow(outputs[i].permute(1,2,0))
-        ax3.axis('off')
-        ax3.set_title('Output (argmax)')
-        ax3.imshow(output_labels[i])
+
+    for i, ax in enumerate(axes.T):
+        # Unnormalize the images
+        images[i] = images[i] * 0.5 + 0.5
+        
+        ax[0].axis('off')
+        ax[0].set_title('Image')
+        ax[0].imshow(images[i].permute(1,2,0))
+
+        ax[1].axis('off')
+        ax[1].set_title('Label')
+        ax[1].imshow(labels[i].permute(1,2,0))
+
+        ax[2].axis('off')
+        ax[2].set_title('Output (prob)')
+        ax[2].imshow(outputs[i].permute(1,2,0))
+
+        ax[3].axis('off')
+        ax[3].set_title('Output (argmax)')
+        ax[3].imshow(output_labels[i])
+
     plt.tight_layout()
-    date_str = time.strftime("%H.%M_%d-%m-%Y_", time.localtime(time.time()))
-    plt.savefig(os.path.join(directory, date_str + plot_and_image_file_title + '.png'))
-    # plt.show()
-    plt.close()
+    return plt
 
 
 def overlap(model, loader, device):
